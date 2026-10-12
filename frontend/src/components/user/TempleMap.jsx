@@ -18,6 +18,8 @@ import {
 } from "../../data/mockTempleMapData";
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const KEY = typeof API_KEY === "string" && API_KEY.trim() && API_KEY.trim() !== "YOUR_GOOGLE_MAPS_API_KEY" ? API_KEY.trim() : null;
+
 
 function drawCircle(map, center, radiusMeters, color, opacity = 0.25) {
   if (!map || !window.google?.maps) return null;
@@ -206,7 +208,7 @@ function MapOverlay({
 }
 
 function TempleMap({ liveData, showUser, showFacilities, showRoute, onZoneClick }) {
-  if (!API_KEY || API_KEY === "YOUR_GOOGLE_MAPS_API_KEY") {
+  if (!KEY) {
     return (
       <div className="temple-map-wrapper" style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "#f4f1ff" }}>
         <div style={{ textAlign: "center", padding: "20px", color: "#d1481f", fontSize: "13px" }}>
@@ -218,7 +220,7 @@ function TempleMap({ liveData, showUser, showFacilities, showRoute, onZoneClick 
 
   return (
     <div className="temple-map-wrapper">
-      <APIProvider apiKey={API_KEY}>
+      <APIProvider apiKey={KEY}>
         <Map
           defaultCenter={TIRUMALA_CENTER}
           defaultZoom={15}
