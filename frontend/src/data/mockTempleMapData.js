@@ -1,4 +1,4 @@
-export const TIRUMALA_CENTER = [13.6832, 79.3471];
+export const TIRUMALA_CENTER = { lat: 13.6832, lng: 79.3471 };
 
 export const crowdZones = [
   {

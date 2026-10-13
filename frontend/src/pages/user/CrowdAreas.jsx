@@ -8,7 +8,7 @@ function CrowdAreas() {
   const [error, setError] = useState(null);
   const [showFacilities, setShowFacilities] = useState(false);
   const [showRoute, setShowRoute] = useState(false);
-  const [showUser, setShowUser] = useState(true);
+  const [showUser, setShowUser] = useState(false);
   const [activeZone, setActiveZone] = useState(null);
 
   useEffect(() => {
