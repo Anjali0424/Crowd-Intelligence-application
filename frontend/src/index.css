@@ -1267,10 +1267,16 @@ button {
 ========================= */
 
 .adm-modules {
-  display: flex;
-  flex-direction: column;
-
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  align-items: stretch;
+}
+
+@media (max-width: 350px) {
+  .adm-modules {
+    grid-template-columns: 1fr;
+  }
 }
 
 .adm-module {
@@ -2591,4 +2597,343 @@ button {
   font-size: 10px;
   color: #9a92b8;
   text-align: center;
+}
+
+
+/* Admin Command Modules Grid */
+.adm-modules {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* Compact module cards */
+.adm-module-compact {
+  width: 100%;
+  min-width: 0;
+  min-height: 125px;
+  padding: 16px 12px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  text-align: center;
+  cursor: pointer;
+}
+
+/* Module icons */
+.adm-module-compact .adm-module-icon {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 16px;
+  background: #f0edff;
+
+  font-size: 28px;
+}
+
+/* Module titles */
+.adm-module-compact h4 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* Hover effect */
+.adm-module-compact:hover {
+  transform: translateY(-2px);
+}
+
+/* Keyboard accessibility */
+.adm-module-compact:focus-visible {
+  outline: 2px solid #6c4cff;
+  outline-offset: 3px;
+}
+
+/* Small-screen layout */
+@media (max-width: 350px) {
+  .adm-modules {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* =========================================
+   LIVE CROWD INTELLIGENCE - UI ENHANCEMENTS
+   ========================================= */
+
+/* Page heading */
+.admin-page-content .page-head {
+  position: relative;
+  padding: 4px 2px 2px;
+}
+
+.admin-page-content .page-head h1 {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.45px;
+  line-height: 1.3;
+  color: #28165f;
+  margin-bottom: 6px;
+}
+
+.admin-page-content .page-head p {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #777094;
+}
+
+/* Summary cards layout */
+.admin-page-content .stat-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* Summary cards */
+.admin-page-content .stat-card {
+  position: relative;
+  min-width: 0;
+  padding: 15px;
+  gap: 10px;
+  border: 1px solid #e9e3ff;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #ffffff 0%, #fcfbff 100%);
+  box-shadow: 0 7px 20px rgba(57, 35, 120, 0.07);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-page-content .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 11px 25px rgba(57, 35, 120, 0.11);
+}
+
+/* Summary card label */
+.admin-page-content .stat-card-top {
+  gap: 7px;
+  align-items: center;
+}
+
+.admin-page-content .stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 27px;
+  height: 27px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: #f0edff;
+  font-size: 15px;
+}
+
+.admin-page-content .stat-label {
+  font-size: 10px;
+  line-height: 1.4;
+  letter-spacing: 0.65px;
+  font-weight: 800;
+  color: #777094;
+}
+
+/* Summary card number */
+.admin-page-content .stat-value {
+  font-size: clamp(23px, 6vw, 29px);
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.7px;
+  color: #2c1d63;
+  overflow-wrap: anywhere;
+}
+
+/* Status badges */
+.admin-page-content .status-pill {
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+/* Supporting information */
+.admin-page-content .stat-note {
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: #8981a8;
+  overflow-wrap: anywhere;
+}
+
+/* Zones section */
+.admin-page-content .modules-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.admin-page-content .section-title {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  color: #2c1d63;
+  margin-bottom: 13px;
+}
+
+/* Zone card grid */
+.admin-page-content .risk-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* Individual zone cards */
+.admin-page-content .risk-card {
+  position: relative;
+  min-width: 0;
+  min-height: 112px;
+  padding: 14px 13px;
+  gap: 7px;
+  border: 1px solid #e9e3ff;
+  border-radius: 19px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(57, 35, 120, 0.055);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.admin-page-content .risk-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 23px rgba(57, 35, 120, 0.1);
+}
+
+/* Zone card top row */
+.admin-page-content .risk-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 1px;
+}
+
+/* Zone risk level */
+.admin-page-content .risk-level {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.55px;
+  line-height: 1.3;
+}
+
+/* Zone count */
+.admin-page-content .risk-count {
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.25px;
+  color: #6046e8;
+}
+
+/* Zone name */
+.admin-page-content .risk-title {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+  color: #2c1d63;
+  overflow-wrap: anywhere;
+}
+
+/* Zone description */
+.admin-page-content .risk-detail {
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: #8981a8;
+  overflow-wrap: anywhere;
+}
+
+/* Low risk */
+.admin-page-content .risk-level.tone-low {
+  color: #087b55;
+  background: #e3f8ed;
+}
+
+/* Moderate risk */
+.admin-page-content .risk-level.tone-moderate {
+  color: #946200;
+  background: #fff3cf;
+}
+
+/* High risk */
+.admin-page-content .risk-level.tone-high {
+  color: #cf4326;
+  background: #ffebe5;
+}
+
+/* Critical risk */
+.admin-page-content .risk-level.tone-critical {
+  color: #c62828;
+  background: #ffe4e4;
+}
+
+/* Live analysis note */
+.admin-page-content .future-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 13px 14px;
+  border: 1px solid #e5ddff;
+  border-left: 4px solid #795ce8;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #f4f1ff, #ffffff);
+  color: #6f6594;
+  font-size: 11.5px;
+  line-height: 1.65;
+}
+
+/* Mobile adjustments */
+@media (max-width: 350px) {
+  .admin-page-content .stat-card {
+    padding: 11px 10px;
+  }
+
+  .admin-page-content .stat-label {
+    font-size: 9px;
+    letter-spacing: 0.3px;
+  }
+
+  .admin-page-content .risk-card {
+    padding: 11px 10px;
+  }
+
+  .admin-page-content .risk-count {
+    font-size: 13px;
+  }
+
+  .admin-page-content .risk-title {
+    font-size: 12px;
+  }
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .admin-page-content .stat-card,
+  .admin-page-content .risk-card {
+    transition: none;
+  }
+
+  .admin-page-content .stat-card:hover,
+  .admin-page-content .risk-card:hover {
+    transform: none;
+  }
 }

@@ -77,10 +77,7 @@ function StaffLogin() {
             🔒 Authorized personnel only
           </div>
 
-          <div className="login-demo">
-            Demo access — Staff ID: <b>admin</b> · Password: <b>admin123</b>
-          </div>
-
+          
           <button
             type="button"
             className="login-back"

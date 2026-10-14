@@ -1,4 +1,12 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+
+import { useEffect } from "react";
 
 import RoleSelection from "../pages/auth/RoleSelection";
 import StaffLogin from "../pages/auth/StaffLogin";
@@ -21,6 +29,7 @@ import CrowdMonitoring from "../pages/admin/CrowdMonitoring";
 import CameraMonitoring from "../pages/admin/CameraMonitoring";
 import AdminMap from "../pages/admin/AdminMap";
 import Prediction from "../pages/admin/Prediction";
+import HourlyCrowdForecast from "../pages/admin/HourlyCrowdForecast";
 import CivicSense from "../pages/admin/CivicSense";
 import StaffAssignments from "../pages/admin/StaffAssignments";
 import EntryExit from "../pages/admin/EntryExit";
@@ -29,9 +38,20 @@ import Resources from "../pages/admin/Resorces";
 import Analytics from "../pages/admin/Analytics";
 import StaffProfile from "../pages/admin/StaffProfile";
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
 function AppRoutes() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
 
       <Routes>
 
@@ -63,6 +83,7 @@ function AppRoutes() {
           <Route path="cameras" element={<CameraMonitoring />} />
           <Route path="map" element={<AdminMap />} />
           <Route path="prediction" element={<Prediction />} />
+          <Route path="hourly-crowd" element={<HourlyCrowdForecast />}/>
           <Route path="civic-sense" element={<CivicSense />} />
           <Route path="staff" element={<StaffAssignments />} />
           <Route path="entry-exit" element={<EntryExit />} />

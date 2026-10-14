@@ -1,7 +1,13 @@
 import StatCard from "../../components/admin/StatCard";
+import TempleMap from "../../components/user/TempleMap";
 import { mockAdminData } from "../../data/mockAdminData";
 
-const EMOJI = { LOW: "🟢", MODERATE: "🟡", HIGH: "🔴" };
+const EMOJI = {
+  LOW: "🟢",
+  MODERATE: "🟡",
+  HIGH: "🔴",
+  CRITICAL: "🔴",
+};
 
 function EntryExit() {
   const { entryExit } = mockAdminData;
@@ -13,6 +19,7 @@ function EntryExit() {
         <p>Gate flow and inside-strength tracking</p>
       </div>
 
+      {/* Existing Entry / Exit Statistics */}
       <div className="stat-grid">
         <StatCard
           icon="🚪"
@@ -21,6 +28,7 @@ function EntryExit() {
           status="SINCE 6 AM"
           tone="neutral"
         />
+
         <StatCard
           icon="↩️"
           label="TODAY'S EXITS"
@@ -28,6 +36,7 @@ function EntryExit() {
           status="SINCE 6 AM"
           tone="neutral"
         />
+
         <StatCard
           icon="🧑‍🤝‍🧑"
           label="CURRENTLY INSIDE"
@@ -38,6 +47,7 @@ function EntryExit() {
         />
       </div>
 
+      {/* Existing Gates Section */}
       <section className="modules-section">
         <h3 className="section-title">Gates</h3>
 
@@ -48,8 +58,9 @@ function EntryExit() {
                 <span
                   className={`risk-level tone-${gate.level.toLowerCase()}`}
                 >
-                  {EMOJI[gate.level]} {gate.level}
+                  {EMOJI[gate.level] || "⚪"} {gate.level}
                 </span>
+
                 <span className="risk-count">{gate.type}</span>
               </div>
 
@@ -60,6 +71,22 @@ function EntryExit() {
         </div>
       </section>
 
+      {/* Added Interactive Temple Map */}
+      <section className="modules-section">
+        <h3 className="section-title">Temple Entry / Exit Map</h3>
+
+        <div className="map-preview-card">
+          <div className="temple-map-container">
+            <TempleMap
+              showUser={false}
+              showFacilities={true}
+              showRoute={true}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Existing Note Preserved */}
       <div className="future-note">
         🤖 Entry/exit counting will come from person re-identification across
         camera zones — coming later.

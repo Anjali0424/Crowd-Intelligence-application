@@ -6,6 +6,11 @@ const navItems = [
   { to: "/admin/alerts", icon: "🚨", label: "Alerts" },
   { to: "/admin/cameras", icon: "📹", label: "Cameras" },
   { to: "/admin/analytics", icon: "📊", label: "Analytics" },
+  {
+    to: "/admin/hourly-crowd",
+    icon: "🕒",
+    label: "Hourly Forecast",
+  },
 ];
 
 function AdminNav() {
