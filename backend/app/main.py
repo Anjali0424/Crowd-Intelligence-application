@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.crowd import router as crowd_router
+from app.api.cameras import router as cameras_router
 
 app = FastAPI(title="Temple Civic Intelligence - Backend")
 
@@ -18,6 +19,7 @@ app.add_middleware(
 )
 
 app.include_router(crowd_router)
+app.include_router(cameras_router)
 
 @app.get("/api/health")
 def root_health():
