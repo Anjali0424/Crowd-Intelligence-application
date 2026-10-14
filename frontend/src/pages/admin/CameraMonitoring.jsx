@@ -27,7 +27,8 @@ function CameraVideo({ camera, className, failure, onError }) {
   );
 }
 
-export default function CameraMonitoring() {
+function MonitoringSection({ kind = "camera" }) {
+  const isDrone = kind === "drone";
   const [cameras, setCameras] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -54,33 +55,32 @@ export default function CameraMonitoring() {
   }, []);
 
   useEffect(() => {
-    const active = Object.keys(counting).filter((id) => counting[id]);
-    if (active.length === 0) return undefined;
+    let mounted = true;
 
-    const timer = setInterval(async () => {
-      const results = await Promise.all(
-        active.map(async (id) => {
-          try {
-            const res = await fetch(`${API_BASE}/api/cameras/${id}/count`);
-            if (!res.ok) return null;
-            const data = await res.json();
-            return [id, data];
-          } catch (err) {
-            return null;
-          }
-        })
-      );
-      setCounts((prev) => {
-        const next = { ...prev };
-        for (const entry of results) {
-          if (entry) next[entry[0]] = entry[1];
+    const poll = async () => {
+      try {
+        const res = await apiGet("/api/cameras/counts");
+        if (!mounted) return;
+        const nextCounts = {};
+        const nextCounting = {};
+        for (const cam of res.cameras || []) {
+          nextCounts[cam.camera_id] = cam;
+          if (cam.processing) nextCounting[cam.camera_id] = true;
         }
-        return next;
-      });
-    }, 1000);
+        setCounts(nextCounts);
+        setCounting(nextCounting);
+      } catch (err) {
+        // transient error — keep last known state
+      }
+    };
 
-    return () => clearInterval(timer);
-  }, [counting]);
+    poll();
+    const timer = setInterval(poll, 1500);
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
+  }, []);
 
   const startCounting = useCallback(async (camera) => {
     try {
@@ -118,31 +118,41 @@ export default function CameraMonitoring() {
     []
   );
 
-  const countedValues = Object.values(counts);
-  const playingCount = cameras.filter(
+  const visible = cameras.filter((c) => (c.kind || "camera") === kind);
+  const trackingCount = visible.filter((c) => counting[c.id]).length;
+  const playingCount = visible.filter(
     (c) => c.available && !videoErrors[c.id]
   ).length;
 
   return (
     <section className="camera-page">
       <header className="camera-heading">
-        <h2>Camera Monitoring</h2>
+        <h2>{isDrone ? "Drone Monitoring" : "Camera Monitoring"}</h2>
         <p>
           {loading
             ? "Loading recorded video feeds..."
-            : `${playingCount} / ${cameras.length} recorded video feeds · ${
-                countedValues.length
+            : `${playingCount} / ${visible.length} recorded video feeds · ${
+                trackingCount
               } tracking`}
         </p>
         <span className="camera-note">
-          Recorded video analysis — not live CCTV
+          {isDrone
+            ? "Recorded aerial video analysis — not a live drone feed"
+            : "Recorded video analysis — not live CCTV"}
         </span>
       </header>
 
       {error && <div className="camera-error">{error}</div>}
 
+      {!loading && !error && visible.length === 0 && (
+        <div className="camera-error">
+          No {isDrone ? "drone videos" : "cameras"} configured. Add video files
+          in backend/videos.
+        </div>
+      )}
+
       <div className="camera-grid">
-        {cameras.map((camera) => {
+        {visible.map((camera) => {
           const info = counts[camera.id] || {};
           const isCounting = !!counting[camera.id];
           const status = !camera.available
@@ -261,4 +271,12 @@ export default function CameraMonitoring() {
       )}
     </section>
   );
+}
+
+export function DroneMonitoring() {
+  return <MonitoringSection kind="drone" />;
+}
+
+export default function CameraMonitoring() {
+  return <MonitoringSection kind="camera" />;
 }

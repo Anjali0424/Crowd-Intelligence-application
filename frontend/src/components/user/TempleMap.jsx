@@ -35,6 +35,31 @@ const zoneColor = (level) => {
   }
 };
 
+const levelWord = (level) => {
+  switch ((level || "").toUpperCase()) {
+    case "LOW":
+      return "🟢 Less crowded";
+    case "MODERATE":
+      return "🟡 Busy";
+    case "HIGH":
+      return "🟠 Very busy";
+    case "CRITICAL":
+      return "🔴 Too crowded";
+    default:
+      return "⚪ No information";
+  }
+};
+
+const STALE_MS = 12000;
+
+function formatTime(timestamp) {
+  if (!timestamp) return "";
+  return new Date(timestamp * 1000).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function markerIcon(color, label = "") {
   return L.divIcon({
     className: "temple-map-marker-icon",
@@ -83,7 +108,12 @@ function LocationMarker({ onError }) {
   ) : null;
 }
 
-function TempleMap({ liveData, showUser, showFacilities, showRoute, onZoneClick }) {
+function TempleMap({
+  zoneCounts = {},
+  showUser,
+  showFacilities,
+  showRoute,
+}) {
   const [locationError, setLocationError] = useState(null);
 
   const handleLocationError = useCallback((error) => {
@@ -117,13 +147,17 @@ function TempleMap({ liveData, showUser, showFacilities, showRoute, onZoneClick 
         </Marker>
 
         {crowdZones.map((zone) => {
-          const live = liveData?.zone_id === zone.id ? liveData : null;
-          const people = live?.people_count ?? zone.people;
-          const capacity = live?.capacity ?? zone.capacity;
-          const density = live?.density ?? zone.density;
-          const level = (live?.level || zone.level).toUpperCase();
-          const color = zoneColor(level);
-          const selectedZone = { ...zone, people, capacity, density, level };
+          const live = zoneCounts?.[zone.id];
+          const counted = Boolean(live && live.available);
+          const ageMs = live?.timestamp
+            ? Date.now() - live.timestamp * 1000
+            : Infinity;
+          const stale = counted && ageMs > STALE_MS;
+          const hasLive = counted && !stale;
+          const people = live?.people;
+          const level = live?.level;
+          const color = hasLive ? zoneColor(level) : "#9aa0a6";
+          const time = formatTime(live?.timestamp);
 
           return (
             <Circle
@@ -133,23 +167,41 @@ function TempleMap({ liveData, showUser, showFacilities, showRoute, onZoneClick 
               pathOptions={{
                 color,
                 fillColor: color,
-                fillOpacity: 0.22,
+                fillOpacity: hasLive ? 0.28 : 0.12,
                 weight: 2,
-              }}
-              eventHandlers={{
-                click: () => onZoneClick?.(selectedZone),
+                dashArray: hasLive ? undefined : "5 5",
               }}
             >
               <Popup>
                 <strong>{zone.name}</strong>
                 <br />
-                {people}/{capacity} people
-                <br />
-                {density}% density · {level} crowd
-                {live && (
+                {hasLive ? (
                   <>
+                    👥 {people} people here
                     <br />
-                    <small>Live AI data</small>
+                    {levelWord(level)}
+                    <br />
+                    <small>Updated {time}</small>
+                    <br />
+                    <small>From video</small>
+                  </>
+                ) : stale ? (
+                  <>
+                    👥 {people} people here
+                    <br />
+                    {levelWord(level)}
+                    <br />
+                    <small className="temple-map-popup-old">
+                      Data may be old · last {time}
+                    </small>
+                    <br />
+                    <small>From video</small>
+                  </>
+                ) : (
+                  <>
+                    ⚪ Crowd information unavailable
+                    <br />
+                    <small>Not started</small>
                   </>
                 )}
               </Popup>
@@ -200,6 +252,24 @@ function TempleMap({ liveData, showUser, showFacilities, showRoute, onZoneClick 
 
         {showUser && <LocationMarker onError={handleLocationError} />}
       </MapContainer>
+
+      <div className="temple-map-legend" aria-label="Crowd level legend">
+        {[
+          ["Less crowded", "#2ecc71"],
+          ["Busy", "#f1c40f"],
+          ["Very busy", "#e67e22"],
+          ["Too crowded", "#e74c3c"],
+          ["No information", "#9aa0a6"],
+        ].map(([label, color]) => (
+          <span key={label} className="temple-map-legend-item">
+            <span
+              className="temple-map-legend-dot"
+              style={{ background: color }}
+            />
+            {label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

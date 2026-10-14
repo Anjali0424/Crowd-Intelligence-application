@@ -5,6 +5,7 @@ const navItems = [
   { to: "/admin/crowd", icon: "👥", label: "Crowd" },
   { to: "/admin/alerts", icon: "🚨", label: "Alerts" },
   { to: "/admin/cameras", icon: "📹", label: "Cameras" },
+  { to: "/admin/drones", icon: "🛸", label: "Drones" },
   { to: "/admin/analytics", icon: "📊", label: "Analytics" },
   {
     to: "/admin/hourly-crowd",

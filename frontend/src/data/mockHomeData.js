@@ -1,12 +1,4 @@
 export const homeMockData = {
-  crowd: {
-    level: "High",
-    label: "HIGH",
-    dot: "🔴",
-    area: "Main Darshan Gate",
-    note: "High crowd detected",
-  },
-
   location: {
     place: "Main Entrance",
     note: "You are near Main Entrance",

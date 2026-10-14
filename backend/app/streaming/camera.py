@@ -58,15 +58,26 @@ CAMERA_FILES: Dict[str, Dict[str, Any]] = {
         "zone_name": "Main Darshan Gate",
         "capacity": 300,
     },
+    "DRONE-01": {
+        "name": "Temple Overview Drone",
+        "filename": "DRONE-01_Temple_Overview.mp4",
+        "location": "Temple premises (aerial)",
+        "zone_id": "main-gate",
+        "zone_name": "Main Darshan Gate",
+        "capacity": None,
+        "kind": "drone",
+    },
 }
 
 ALIASES = {
     "crowd": "CAM-DEMO",
     "crowd.mp4": "CAM-DEMO",
     "demo": "CAM-DEMO",
+    "drone": "DRONE-01",
+    "drone-01": "DRONE-01",
 }
 
-ORDER = ["CAM-01", "CAM-05", "CAM-06", "CAM-07", "CAM-09", "CAM-DEMO"]
+ORDER = ["CAM-01", "CAM-05", "CAM-06", "CAM-07", "CAM-09", "CAM-DEMO", "DRONE-01"]
 
 
 def normalize_id(camera_id: str) -> Optional[str]:
@@ -103,11 +114,12 @@ def camera_info(camera_id: str) -> Optional[Dict[str, Any]]:
     return {
         "id": cid,
         "name": meta["name"],
-        "location": meta["name"],
+        "location": meta.get("location", meta["name"]),
         "zone_id": meta["zone_id"],
         "zone_name": meta["zone_name"],
         "capacity": meta["capacity"],
         "filename": meta["filename"],
+        "kind": meta.get("kind", "camera"),
         "available": path is not None,
         "status": "available" if path is not None else "missing",
         "missing_reason": None if path is not None else f"{meta['filename']} not found",
@@ -139,6 +151,7 @@ class CameraSession:
         self._fps = 0.0
         self._frame_size = (0, 0)
         self._error: Optional[str] = None
+        self._has_count = False
 
     def info(self) -> Dict[str, Any]:
         info = camera_info(self.camera_id) or {
@@ -174,6 +187,9 @@ class CameraSession:
                 "frame_size": list(self._frame_size),
                 "error": self._error,
                 "processing": self._processing,
+                "has_count": self._has_count,
+                "available": bool(info.get("available")),
+                "kind": info.get("kind", "camera"),
                 "source": "recorded-video",
             }
 
@@ -188,6 +204,7 @@ class CameraSession:
                 return
             self._error = None
             self._processing = True
+            self._has_count = False
         self._stop.clear()
         self._thread = threading.Thread(
             target=self._run, args=(str(path),), daemon=True
@@ -230,6 +247,7 @@ class CameraSession:
                     self._fps = result.fps
                     self._frame_size = result.frame_size
                     self._error = None
+                    self._has_count = True
         except Exception as exc:  # noqa: BLE001 - surfaced to the API
             with self._lock:
                 self._error = str(exc)

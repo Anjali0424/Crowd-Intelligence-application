@@ -26,7 +26,9 @@ import Profile from "../pages/user/Profile";
 
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import CrowdMonitoring from "../pages/admin/CrowdMonitoring";
-import CameraMonitoring from "../pages/admin/CameraMonitoring";
+import CameraMonitoring, {
+  DroneMonitoring,
+} from "../pages/admin/CameraMonitoring";
 import AdminMap from "../pages/admin/AdminMap";
 import Prediction from "../pages/admin/Prediction";
 import HourlyCrowdForecast from "../pages/admin/HourlyCrowdForecast";
@@ -81,6 +83,7 @@ function AppRoutes() {
           <Route index element={<AdminDashboard />} />
           <Route path="crowd" element={<CrowdMonitoring />} />
           <Route path="cameras" element={<CameraMonitoring />} />
+          <Route path="drones" element={<DroneMonitoring />} />
           <Route path="map" element={<AdminMap />} />
           <Route path="prediction" element={<Prediction />} />
           <Route path="hourly-crowd" element={<HourlyCrowdForecast />}/>

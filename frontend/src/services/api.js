@@ -7,6 +7,7 @@ export const API_BASE =
 
 export async function apiGet(path) {
   const res = await fetch(`${API_BASE}${path}`, {
+    cache: "no-store",
     headers: { "Content-Type": "application/json" },
   });
 

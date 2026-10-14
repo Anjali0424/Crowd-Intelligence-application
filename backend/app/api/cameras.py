@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, Response, StreamingResponse
 
 from app.streaming.camera import (
+    ORDER,
     CameraSession,
     list_camera_info,
     normalize_id,
@@ -48,6 +49,13 @@ def list_cameras():
 @router.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@router.get("/counts")
+def list_counts(response: Response):
+    """Latest YOLOv11 count per camera, for the devotee map and cards."""
+    response.headers["Cache-Control"] = "no-store"
+    return {"cameras": [_get_session(cid).latest() for cid in ORDER]}
 
 
 @router.get("/{camera_id}/stream")
@@ -112,6 +120,7 @@ def stop_count(camera_id: str):
 
 
 @router.get("/{camera_id}/count")
-def get_count(camera_id: str):
+def get_count(camera_id: str, response: Response):
     session = _get_session(camera_id)
+    response.headers["Cache-Control"] = "no-store"
     return session.latest()

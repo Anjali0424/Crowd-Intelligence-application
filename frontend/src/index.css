@@ -2492,7 +2492,17 @@ button {
 }
 
 .admin-nav .nav-item {
-  font-size: 9.5px;
+  font-size: 9px;
+  padding-left: 2px;
+  padding-right: 2px;
+  min-width: 0;
+}
+
+.admin-nav .nav-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 
@@ -2519,15 +2529,6 @@ button {
   }
 
 }
-.temple-map-container {
-  width: 100%;
-  height: 360px;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid #eee9ff;
-  box-shadow: 0 4px 14px rgba(57, 35, 120, 0.06);
-}
-
 .temple-map-wrapper {
   position: relative;
   width: 100%;
@@ -2576,27 +2577,592 @@ button {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.map-toggle {
-  border: 1px solid #e4defc;
-  background: #f8f7ff;
-  color: #4a3a86;
-  font-size: 11px;
-  font-weight: 600;
+.temple-map-legend {
+  position: absolute;
+  z-index: 1000;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  max-width: calc(100% - 20px);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
   padding: 6px 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  font-size: 10px;
+  font-weight: 600;
+  color: #4a3a86;
+}
+
+.temple-map-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.temple-map-legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+/* =========================
+   CROWD HEATMAP (DEVOTEE)
+========================= */
+
+.crowd-areas {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  padding-bottom: 8px;
+
+  text-align: left;
+}
+
+.crowd-error {
+  flex-shrink: 0;
+
+  background: #ffe5e5;
+  color: #b42318;
+
+  border: 1px solid #ffd4cf;
+  border-radius: 12px;
+
+  padding: 10px 12px;
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.crowd-map-controls {
+  flex-shrink: 0;
+
+  display: flex;
+  gap: 8px;
+
+  padding: 6px;
+
+  background: #ffffff;
+  border: 1px solid #eee9ff;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(35, 18, 78, 0.06);
+}
+
+.crowd-map-shell {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  height: clamp(280px, 48vh, 420px);
+
+  border-radius: 18px;
+  overflow: hidden;
+
+  border: 1px solid #eee9ff;
+  box-shadow: 0 4px 14px rgba(57, 35, 120, 0.06);
+}
+
+.crowd-control {
+  flex: 1 1 0;
+  min-width: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  min-height: 46px;
+  padding: 8px 10px;
+
+  border: 1px solid #e8e2ff;
   border-radius: 10px;
+
+  background: #f7f5ff;
+  color: #3f3563;
+
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+
   cursor: pointer;
 }
 
-.map-toggle.active {
+.crowd-control[aria-pressed="true"] {
   background: linear-gradient(135deg, #6046e8, #795ce8);
-  color: white;
+  color: #ffffff;
   border-color: transparent;
 }
 
-.map-note {
-  font-size: 10px;
-  color: #9a92b8;
+.crowd-map-foot {
+  flex-shrink: 0;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px 12px;
+
+  font-size: 12px;
+  line-height: 1.4;
+
+  color: #6f678c;
+}
+
+.crowd-map-updated {
+  font-weight: 700;
+  color: #3f3563;
+}
+
+.temple-map-popup-old {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.crowd-heatmap {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 20px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #e9e1ff;
+  border-radius: 18px;
+}
+
+.crowd-heatmap h2 {
+  margin: 0;
+  color: #281563;
+  font-size: 20px;
+}
+
+.heatmap-subtitle {
+  margin: 6px 0 14px;
+  color: #77718f;
+  font-size: 14px;
+}
+
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.heatmap-zone {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 125px;
+  padding: 14px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  overflow-wrap: anywhere;
+  box-shadow: 0 3px 10px #25145f12;
+}
+
+.heatmap-zone strong {
+  font-size: 16px;
+}
+
+.heatmap-count {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.heatmap-label,
+.heatmap-density {
+  font-size: 13px;
+}
+
+.heatmap-time,
+.heatmap-source {
+  font-size: 11px;
+  line-height: 1.3;
+  opacity: 0.95;
+}
+
+.heatmap-source {
+  font-weight: 700;
+}
+
+@media (max-width: 340px) {
+  .heatmap-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* =========================
+   MY LOCATION & PATH (MAP)
+========================= */
+
+.nav-page {
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+
+  height: 100%;
+  min-height: 0;
+
+  overflow-x: hidden;
+}
+
+.nav-map-shell {
+  position: relative;
+  flex: 1;
+  min-height: 280px;
+
+  width: 100%;
+
+  border-radius: 18px;
+  overflow: hidden;
+
+  border: 1px solid #e6e0ff;
+
+  background: #eef1f6;
+
+  box-shadow: 0 4px 14px rgba(57, 35, 120, 0.08);
+}
+
+/*
+ * z-index:0 turns the map into its own stacking context so the Google Maps
+ * controls (which use very large z-index values) can never cover our own
+ * buttons and overlays.
+ */
+.nav-map-canvas {
+  width: 100%;
+  height: 100%;
+
+  position: relative;
+  z-index: 0;
+}
+
+.nav-locate-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 5;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 10px 14px;
+
+  border: 1px solid #e6e0ff;
+  border-radius: 999px;
+
+  background: #ffffff;
+  color: #3f3563;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  box-shadow: 0 6px 16px rgba(35, 18, 78, 0.22);
+
+  cursor: pointer;
+}
+
+.nav-locate-btn:hover {
+  background: #f4f1ff;
+}
+
+.nav-pill {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 8px 14px;
+
+  border-radius: 999px;
+
+  background: rgba(44, 29, 99, 0.92);
+  color: #ffffff;
+
+  font-size: 12.5px;
+  font-weight: 600;
+
+  white-space: nowrap;
+
+  box-shadow: 0 6px 16px rgba(35, 18, 78, 0.28);
+}
+
+.nav-spinner {
+  width: 13px;
+  height: 13px;
+
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+
+  animation: nav-spin 0.8s linear infinite;
+}
+
+@keyframes nav-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.nav-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(251, 250, 255, 0.74);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+.nav-overlay-static {
+  position: static;
+  flex: 1;
+  min-height: 280px;
+}
+
+.nav-card {
+  width: 100%;
+  max-width: 300px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 20px 18px;
+
   text-align: center;
+
+  background: #ffffff;
+  border: 1px solid #ece6ff;
+  border-radius: 18px;
+
+  box-shadow: 0 12px 30px rgba(57, 35, 120, 0.16);
+}
+
+.nav-card-icon {
+  width: 52px;
+  height: 52px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 16px;
+
+  background: #f1efff;
+
+  font-size: 26px;
+}
+
+.nav-card h3 {
+  font-size: 15px;
+  font-weight: 700;
+
+  color: #2c1d63;
+}
+
+.nav-card p {
+  font-size: 12.5px;
+  line-height: 1.5;
+
+  color: #7a719b;
+}
+
+.nav-card code {
+  padding: 2px 5px;
+
+  border-radius: 6px;
+
+  background: #f1efff;
+  color: #4b3bb0;
+
+  font-size: 11.5px;
+}
+
+.nav-btn {
+  margin-top: 4px;
+
+  padding: 10px 18px;
+
+  border: none;
+  border-radius: 999px;
+
+  background: linear-gradient(135deg, #6046e8, #795ce8);
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.nav-meta {
+  flex-shrink: 0;
+
+  font-size: 11.5px;
+  line-height: 1.4;
+  text-align: center;
+
+  color: #7a719b;
+}
+
+/* =========================
+   TEMPLE ROUTE MAP (DEVOTEE)
+========================= */
+
+.temple-route {
+  display: flex;
+  flex-direction: column;
+
+  gap: 12px;
+
+  padding-bottom: 8px;
+}
+
+.temple-route-shell {
+  position: relative;
+
+  width: 100%;
+  height: clamp(260px, 46vh, 400px);
+
+  border: 1px solid #ece6ff;
+  border-radius: 20px;
+
+  overflow: hidden;
+
+  box-shadow: 0 10px 30px rgba(57, 35, 120, 0.08);
+}
+
+.temple-route-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  border: 1px solid #ffe1a8;
+  border-radius: 14px;
+
+  background: #fff7e6;
+  color: #8a5a00;
+
+  padding: 10px 12px;
+
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.temple-route-badge {
+  flex-shrink: 0;
+
+  border-radius: 999px;
+
+  background: #8a5a00;
+  color: #ffffff;
+
+  padding: 3px 8px;
+
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.temple-route-panel {
+  border: 1px solid #ece6ff;
+  border-radius: 18px;
+
+  background: #ffffff;
+
+  padding: 16px;
+
+  box-shadow: 0 8px 24px rgba(57, 35, 120, 0.06);
+}
+
+.temple-route-panel h3 {
+  font-size: 16px;
+  font-weight: 700;
+
+  color: #2c1d63;
+}
+
+.temple-route-steps {
+  margin: 6px 0 0;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  color: #6046e8;
+}
+
+.temple-route-metrics {
+  display: flex;
+  gap: 10px;
+
+  margin-top: 12px;
+}
+
+.temple-route-metric {
+  flex: 1 1 0;
+  min-width: 0;
+
+  border: 1px solid #efeaff;
+  border-radius: 14px;
+
+  background: #f7f5ff;
+
+  padding: 10px 12px;
+}
+
+.temple-route-metric-label {
+  display: block;
+
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  color: #8a82ab;
+}
+
+.temple-route-metric-value {
+  display: block;
+
+  margin-top: 4px;
+
+  font-size: 20px;
+  font-weight: 800;
+
+  color: #2c1d63;
+}
+
+.temple-route-source {
+  margin: 10px 0 0;
+
+  font-size: 11.5px;
+  line-height: 1.4;
+
+  color: #7a719b;
 }
 
 

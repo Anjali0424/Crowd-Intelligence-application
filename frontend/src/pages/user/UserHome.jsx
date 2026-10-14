@@ -1,6 +1,23 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { homeMockData } from "../../data/mockHomeData";
+import { getCameraCounts } from "../../services/crowdService";
+
+const LEVEL_META = {
+  LOW: { label: "LOW", dot: "🟢" },
+  MODERATE: { label: "MODERATE", dot: "🟡" },
+  HIGH: { label: "HIGH", dot: "🟠" },
+  CRITICAL: { label: "CRITICAL", dot: "🔴" },
+};
+
+function levelFromDensity(density) {
+  if (density == null) return null;
+  if (density >= 91) return "CRITICAL";
+  if (density >= 71) return "HIGH";
+  if (density >= 41) return "MODERATE";
+  return "LOW";
+}
 
 const modules = [
   {
@@ -51,7 +68,58 @@ const modules = [
 function UserHome() {
   const navigate = useNavigate();
 
-  const crowd = homeMockData.crowd;
+  const [crowd, setCrowd] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    let timer;
+
+    async function load() {
+      try {
+        const res = await getCameraCounts();
+        if (!mounted) return;
+        const zones = {};
+        for (const camera of res.cameras || []) {
+          if (!camera.zone_id || !(camera.available && camera.has_count)) {
+            continue;
+          }
+          const capacity = camera.capacity || 0;
+          const density = capacity
+            ? Math.round(((camera.people_count || 0) / capacity) * 100)
+            : 0;
+          const current = zones[camera.zone_id];
+          if (!current || density > current.density) {
+            zones[camera.zone_id] = {
+              area: camera.zone_name,
+              people: camera.people_count || 0,
+              capacity,
+              density,
+            };
+          }
+        }
+        const busiest = Object.values(zones).sort(
+          (a, b) => b.density - a.density
+        )[0];
+        setCrowd(
+          busiest
+            ? { ...busiest, level: levelFromDensity(busiest.density) }
+            : null
+        );
+      } catch (err) {
+        if (mounted) setCrowd(null);
+      }
+    }
+
+    load();
+    timer = setInterval(load, 1500);
+
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
+  }, []);
+
+  const meta = crowd?.level ? LEVEL_META[crowd.level] : null;
 
   return (
     <div className="user-home">
@@ -74,13 +142,17 @@ function UserHome() {
         <div className="live-crowd-top">
           <span className="live-crowd-label">LIVE CROWD</span>
           <span className="live-crowd-status">
-            {crowd.dot} {crowd.label}
+            {meta ? `${meta.dot} ${meta.label}` : "⚪ NO DATA"}
           </span>
         </div>
 
         <div className="live-crowd-body">
-          <h2>{crowd.area}</h2>
-          <p>{crowd.note}</p>
+          <h2>{crowd?.area || "No live data"}</h2>
+          <p>
+            {crowd
+              ? `${crowd.people}/${crowd.capacity} people • ${crowd.density}% full`
+              : "Counting not active"}
+          </p>
         </div>
 
         <div className="live-crowd-action">View Crowd →</div>

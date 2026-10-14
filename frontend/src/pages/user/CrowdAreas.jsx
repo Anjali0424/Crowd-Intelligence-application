@@ -1,15 +1,170 @@
-import { useState, useEffect } from "react";
-import { getLiveCrowd } from "../../services/crowdService";
+import { useEffect, useState } from "react";
+
+import { getCameraCounts } from "../../services/crowdService";
 import TempleMap from "../../components/user/TempleMap";
+import { crowdZones } from "../../data/mockTempleMapData";
+
+const STALE_MS = 12000;
+
+const ZONE_CAPACITY = Object.fromEntries(
+  crowdZones.map((zone) => [zone.id, zone.capacity])
+);
+
+function levelFromDensity(density) {
+  if (density == null) return null;
+  if (density >= 91) return "CRITICAL";
+  if (density >= 71) return "HIGH";
+  if (density >= 41) return "MODERATE";
+  return "LOW";
+}
+
+function formatTime(timestamp) {
+  if (!timestamp) return "";
+  return new Date(timestamp * 1000).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function buildZoneCounts(cameras) {
+  const zones = {};
+
+  for (const camera of cameras) {
+    const zoneId = camera.zone_id;
+    if (!zoneId) continue;
+
+    if (!zones[zoneId]) {
+      zones[zoneId] = {
+        available: false,
+        processing: false,
+        people: 0,
+        capacity: ZONE_CAPACITY[zoneId] || camera.capacity || null,
+        timestamp: 0,
+        sourceId: null,
+        sourceName: null,
+        sourceKind: null,
+      };
+    }
+
+    const zone = zones[zoneId];
+    if (camera.available && camera.has_count) {
+      zone.available = true;
+      zone.processing = zone.processing || Boolean(camera.processing);
+      const people = camera.people_count || 0;
+      if (people >= zone.people) {
+        zone.people = people;
+        zone.sourceId = camera.camera_id || camera.id;
+        zone.sourceName = camera.name;
+        zone.sourceKind = camera.kind || "camera";
+      }
+      zone.timestamp = Math.max(zone.timestamp, camera.timestamp || 0);
+    }
+  }
+
+  for (const zoneId of Object.keys(zones)) {
+    const zone = zones[zoneId];
+    if (zone.available && zone.capacity) {
+      zone.density = Math.round((zone.people / zone.capacity) * 100);
+      zone.level = levelFromDensity(zone.density);
+    }
+  }
+
+  return zones;
+}
+
+function CrowdHeatmap({ zoneCounts }) {
+  const colors = {
+    LOW: "#22c55e",
+    MODERATE: "#facc15",
+    HIGH: "#f97316",
+    CRITICAL: "#ef4444",
+  };
+
+  const labels = {
+    LOW: "Less crowded",
+    MODERATE: "Busy",
+    HIGH: "Very crowded",
+    CRITICAL: "Too crowded",
+  };
+
+  return (
+    <section className="crowd-heatmap">
+      <h2>🗺️ Crowd Heatmap</h2>
+      <p className="heatmap-subtitle">
+        See which temple areas are crowded
+      </p>
+
+      <div className="heatmap-grid">
+        {crowdZones.map((zone) => {
+          const data = zoneCounts[zone.id];
+          const counted = Boolean(data?.available);
+          const ageMs = data?.timestamp
+            ? Date.now() - data.timestamp * 1000
+            : Infinity;
+          const stale = counted && ageMs > STALE_MS;
+          const hasLive = counted && !stale && Boolean(data?.capacity && data?.level);
+
+          const level = hasLive ? data.level : null;
+          const color = hasLive ? colors[level] : "#d1d5db";
+          const textColor = !hasLive
+            ? "#4b5563"
+            : level === "MODERATE"
+            ? "#422006"
+            : "#ffffff";
+
+          return (
+            <div
+              key={zone.id}
+              className="heatmap-zone"
+              style={{ backgroundColor: color, color: textColor }}
+            >
+              <strong>{zone.name}</strong>
+
+              {hasLive ? (
+                <>
+                  <span className="heatmap-count">
+                    {data.people} people
+                  </span>
+                  <span className="heatmap-label">
+                    {labels[level] || "Less crowded"}
+                  </span>
+                  <span className="heatmap-density">
+                    {data.density}% full
+                  </span>
+                  <span className="heatmap-time">
+                    Updated {formatTime(data.timestamp)}
+                  </span>
+                  <span className="heatmap-source">
+                    {data.sourceKind === "drone" ? "🛸" : "📹"}{" "}
+                    {data.sourceName || data.sourceId || "video"}
+                  </span>
+                </>
+              ) : stale ? (
+                <>
+                  <span className="heatmap-count">{data.people} people</span>
+                  <span className="heatmap-label">Data may be old</span>
+                  <span className="heatmap-time">
+                    Last {formatTime(data.timestamp)}
+                  </span>
+                </>
+              ) : (
+                <span className="heatmap-label">Not started</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 
 function CrowdAreas() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [cameras, setCameras] = useState([]);
   const [error, setError] = useState(null);
   const [showFacilities, setShowFacilities] = useState(false);
   const [showRoute, setShowRoute] = useState(false);
   const [showUser, setShowUser] = useState(false);
-  const [activeZone, setActiveZone] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -17,19 +172,12 @@ function CrowdAreas() {
 
     async function fetchData() {
       try {
-        const res = await getLiveCrowd();
-        if (mounted) {
-          setData(res);
-          setError(null);
-        }
+        const res = await getCameraCounts();
+        if (!mounted) return;
+        setCameras(res.cameras || []);
+        setError(null);
       } catch (err) {
-        if (mounted) {
-          setError(err.message || "Failed to fetch live crowd data");
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setError("Could not load crowd information.");
       }
     }
 
@@ -42,134 +190,77 @@ function CrowdAreas() {
     };
   }, []);
 
-  const getLevelColor = (level) => {
-    switch ((level || "").toUpperCase()) {
-      case "LOW":
-        return "#12805c";
-      case "MODERATE":
-        return "#9a6b00";
-      case "HIGH":
-        return "#d1481f";
-      case "CRITICAL":
-        return "#d92d20";
-      default:
-        return "#4a3a86";
-    }
-  };
+  const zoneCounts = buildZoneCounts(cameras);
 
-  const getLevelIcon = (level) => {
-    switch ((level || "").toUpperCase()) {
-      case "LOW":
-        return "🟢";
-      case "MODERATE":
-        return "🟡";
-      case "HIGH":
-        return "🟠";
-      case "CRITICAL":
-        return "🔴";
-      default:
-        return "🟢";
-    }
-  };
+  const countedCameras = cameras.filter(
+    (camera) => camera.zone_id && camera.available && camera.has_count
+  );
+  const newest = countedCameras.reduce(
+    (max, camera) => Math.max(max, camera.timestamp || 0),
+    0
+  );
+  const isStale =
+    countedCameras.length > 0 && Date.now() - newest * 1000 > STALE_MS;
 
-  const handleZoneClick = (zone) => {
-    setActiveZone(zone);
-  };
+  const updatedText =
+    countedCameras.length === 0
+      ? "Not started"
+      : isStale
+      ? `Data may be old · last ${formatTime(newest)}`
+      : `Updated ${formatTime(newest)}`;
 
   return (
-    <div className="page-placeholder" style={{ minHeight: "auto", padding: "20px", gap: "12px", alignItems: "stretch" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <span className="placeholder-icon" style={{ width: "46px", height: "46px", fontSize: "24px", marginBottom: 0 }}>👥</span>
-        <div style={{ flex: 1 }}>
-          <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#2c1d63" }}>Live Crowd Monitoring</h2>
-          <p style={{ margin: 0, fontSize: "12px", color: "#7a719b" }}>
-            {data?.zone_name || "Main Darshan Gate"} {data?.source === "video" ? "• video" : data?.source === "webcam" ? "• webcam" : ""}
-          </p>
-        </div>
-        <span style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.6px", color: "#12805c" }}>● LIVE</span>
+    <div className="crowd-areas">
+      {error && <div className="crowd-error">{error}</div>}
+
+      <div
+        className="crowd-map-controls"
+        role="group"
+        aria-label="Map controls"
+      >
+        <button
+          type="button"
+          className={`crowd-control ${showUser ? "active" : ""}`}
+          aria-pressed={showUser}
+          onClick={() => setShowUser((value) => !value)}
+        >
+          <span aria-hidden="true">📍</span> My Location
+        </button>
+        <button
+          type="button"
+          className={`crowd-control ${showFacilities ? "active" : ""}`}
+          aria-pressed={showFacilities}
+          onClick={() => setShowFacilities((value) => !value)}
+        >
+          <span aria-hidden="true">🚻</span> Facilities
+        </button>
+        <button
+          type="button"
+          className={`crowd-control ${showRoute ? "active" : ""}`}
+          aria-pressed={showRoute}
+          onClick={() => setShowRoute((value) => !value)}
+        >
+          <span aria-hidden="true">🧭</span> Less Crowded Route
+        </button>
       </div>
 
-      {error && (
-        <div style={{ background: "#ffe5e5", color: "#d92d20", border: "1px solid #ffd4cf", borderRadius: "12px", padding: "10px 12px", fontSize: "12px" }}>
-          {error}
-        </div>
-      )}
-
-      <div style={{ background: "white", border: "1px solid #eee9ff", borderRadius: "16px", padding: "16px", display: "flex", flexDirection: "column", gap: "10px", boxShadow: "0 4px 14px rgba(57, 35, 120, 0.06)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <div style={{ fontSize: "11px", fontWeight: 800, letterSpacing: "0.6px", color: "#847aab" }}>CURRENT CROWD</div>
-            <div style={{ fontSize: "42px", fontWeight: 800, color: "#2c1d63", lineHeight: "1.1" }}>
-              {loading ? "..." : data?.people_count ?? 0}
-            </div>
-            <div style={{ fontSize: "12px", color: "#7a719b" }}>people detected</div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "11px", color: "#847aab" }}>STATUS</div>
-            <div style={{ fontSize: "14px", fontWeight: 800, color: getLevelColor(data?.level || "LOW") }}>
-              {getLevelIcon(data?.level || "LOW")} {(data?.level || "LOW").toUpperCase()}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-          <div style={{ background: "#f8f7ff", border: "1px solid #eee9ff", borderRadius: "12px", padding: "10px" }}>
-            <div style={{ fontSize: "10px", color: "#9a92b8", textTransform: "uppercase", letterSpacing: "0.5px" }}>Capacity</div>
-            <div style={{ fontSize: "14px", fontWeight: 700, color: "#2c1d63" }}>
-              {loading ? "-" : `${data?.people_count ?? 0} / ${data?.capacity ?? 300}`}
-            </div>
-          </div>
-          <div style={{ background: "#f8f7ff", border: "1px solid #eee9ff", borderRadius: "12px", padding: "10px" }}>
-            <div style={{ fontSize: "10px", color: "#9a92b8", textTransform: "uppercase", letterSpacing: "0.5px" }}>Density</div>
-            <div style={{ fontSize: "14px", fontWeight: 700, color: "#2c1d63" }}>
-              {loading ? "-" : `${data?.density ?? 0}%`}
-            </div>
-          </div>
-        </div>
-
-        {activeZone && (
-          <div style={{ background: "#f4f1ff", border: "1px solid #e9e3ff", borderRadius: "12px", padding: "10px" }}>
-            <div style={{ fontSize: "11px", fontWeight: 700, color: "#6046e8" }}>{activeZone.name}</div>
-            <div style={{ fontSize: "11px", color: "#4a3a86" }}>{activeZone.people} / {activeZone.capacity} people • {activeZone.density}% • {activeZone.level}</div>
-          </div>
-        )}
-
-        <div style={{ fontSize: "11px", color: "#9a92b8" }}>
-          Last updated: {loading ? "fetching..." : new Date((data?.timestamp || Date.now()) * 1000).toLocaleTimeString()}
-        </div>
-
-        <div style={{ fontSize: "11px", color: "#7a719b", background: "#f4f1ff", border: "1px dashed #d9d0ff", borderRadius: "10px", padding: "8px 10px" }}>
-          AI Live Detection • real YOLOv11 person count from video source
-        </div>
+      <div className="crowd-map-shell">
+        <TempleMap
+          zoneCounts={zoneCounts}
+          showUser={showUser}
+          showFacilities={showFacilities}
+          showRoute={showRoute}
+        />
       </div>
 
-      <section style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#2c1d63" }}>Live Temple Map</h3>
-          <div style={{ fontSize: "10px", color: "#7a719b" }}>Sri Venkateswara Swamy Temple, Tirumala</div>
-        </div>
+      <div className="crowd-map-foot">
+        <span>📹 From video analysis — may differ from the real crowd</span>
+        <span className="crowd-map-updated">{updatedText}</span>
+      </div>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-          <button type="button" onClick={() => setShowUser((v) => !v)} className={`map-toggle ${showUser ? "active" : ""}`}>Your Location</button>
-          <button type="button" onClick={() => setShowFacilities((v) => !v)} className={`map-toggle ${showFacilities ? "active" : ""}`}>Facilities</button>
-          <button type="button" onClick={() => setShowRoute((v) => !v)} className={`map-toggle ${showRoute ? "active" : ""}`}>Recommended Route</button>
-          <button type="button" onClick={() => setActiveZone(null)} className="map-toggle">Clear Info</button>
-        </div>
-
-        <div className="temple-map-container">
-          <TempleMap liveData={data} showUser={showUser} showFacilities={showFacilities} showRoute={showRoute} onZoneClick={handleZoneClick} />
-        </div>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", justifyContent: "center", fontSize: "10px", color: "#7a719b" }}>
-          <span>🟢 Low</span>
-          <span>🟡 Moderate</span>
-          <span>🟠 High</span>
-          <span>🔴 Critical</span>
-          <span>• LIVE Crowd zones</span>
-          <span>• DEMO geometry</span>
-        </div>
-      </section>
+      <CrowdHeatmap zoneCounts={zoneCounts} />
     </div>
+    
   );
 }
 
