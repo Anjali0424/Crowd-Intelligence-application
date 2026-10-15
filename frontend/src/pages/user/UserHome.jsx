@@ -505,6 +505,12 @@ function UserHome() {
       <section className="dh-services">
         <div className="dh-section-head">
           <h2 className="dh-section-title">{t("home.servicesTitle")}</h2>
+          <h1
+            className="dh-section-title dh-section-title-large"
+            aria-hidden="true"
+          >
+            {t("home.servicesTitle")}
+          </h1>
           <span className="dh-section-sub">{t("home.servicesSub")}</span>
         </div>
 
