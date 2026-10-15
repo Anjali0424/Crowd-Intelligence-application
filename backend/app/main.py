@@ -1,8 +1,17 @@
-from fastapi import FastAPI
+﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.crowd import router as crowd_router
 from app.api.cameras import router as cameras_router
+from app.api.chatbot import router as chatbot_router
+from app.api.darshan import router as darshan_router
+from app.database.database import SessionLocal, init_db
+from app.services.crowd_service import seed_defaults
+from pathlib import Path
+from dotenv import load_dotenv
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BACKEND_DIR / ".env")
 
 app = FastAPI(title="Temple Civic Intelligence - Backend")
 
@@ -13,17 +22,30 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:3000",
     ],
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+init_db()
+
+_seed_db = SessionLocal()
+try:
+    seed_defaults(_seed_db)
+finally:
+    _seed_db.close()
+
 app.include_router(crowd_router)
 app.include_router(cameras_router)
+app.include_router(chatbot_router)
+app.include_router(darshan_router)
+
 
 @app.get("/api/health")
-def root_health():
+def health():
     return {"status": "ok"}
+
 
 @app.get("/")
 def root():

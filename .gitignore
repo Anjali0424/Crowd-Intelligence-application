@@ -2,3 +2,12 @@ frontend/.env
 frontend/.env.local
 backend/.env
 
+# Darshan prediction runtime artifacts
+backend/data/
+backend/models/
+
+# Python
+__pycache__/
+*.pyc
+
+

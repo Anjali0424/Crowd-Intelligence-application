@@ -1,0 +1,223 @@
+.spot-section {
+  margin-bottom: 20px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid #EAF7EC;
+  border-radius: 18px;
+  box-shadow: 0 6px 20px rgba(20, 83, 45, 0.06);
+}
+
+.spot-error {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  background: #fde8e8;
+  color: #9b1c1c;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.spot-status {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  background: #EAF7EC;
+  color: #14532D;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.spot-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.spot-form label,
+.spot-inline-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #14532D;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.spot-form input,
+.spot-inline-form input,
+.spot-inline-form select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  color: #14532D;
+  background: #fff;
+  border: 1px solid #D7EBDD;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+}
+
+.spot-form input:focus,
+.spot-inline-form input:focus,
+.spot-inline-form select:focus {
+  outline: 2px solid #2F9E5B;
+  outline-offset: 1px;
+  border-color: #2F9E5B;
+}
+
+.spot-checkbox {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.spot-checkbox input {
+  width: auto;
+}
+
+.spot-btn {
+  padding: 11px 18px;
+  color: #fff;
+  background: #218C4A;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.spot-btn:hover {
+  background: #218C4A;
+}
+
+.spot-btn.ghost {
+  background: #EAF7EC;
+  color: #218C4A;
+}
+
+.spot-btn.ghost:hover {
+  background: #EAF7EC;
+}
+
+.spot-hint {
+  margin: 12px 0 0;
+  color: #64816D;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.spot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spot-row {
+  padding: 14px;
+  border: 1px solid #F3FAF4;
+  border-radius: 14px;
+  background: #F3FAF4;
+}
+
+.spot-row-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.spot-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 180px;
+  flex: 1 1 220px;
+}
+
+.spot-row-info strong {
+  color: #14532D;
+  font-size: 15px;
+}
+
+.spot-meta {
+  color: #64816D;
+  font-size: 12px;
+}
+
+.spot-row-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  flex: 1 1 200px;
+}
+
+.spot-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.spot-pill {
+  display: inline-block;
+  padding: 5px 11px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.spot-inline-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  align-items: end;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed #D7EBDD;
+}
+
+.spot-inline-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.spot-path-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.spot-path-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid #F3FAF4;
+  border-radius: 12px;
+  background: #F3FAF4;
+}
+
+.spot-path-row .spot-meta {
+  flex: 1 1 220px;
+}
+
+.spot-pill {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 480px) {
+  .spot-row-actions {
+    width: 100%;
+  }
+
+  .spot-row-actions .spot-btn {
+    flex: 1 1 auto;
+  }
+}

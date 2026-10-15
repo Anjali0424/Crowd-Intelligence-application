@@ -26,6 +26,7 @@ import Profile from "../pages/user/Profile";
 
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import CrowdMonitoring from "../pages/admin/CrowdMonitoring";
+import SpotCrowdManagement from "../pages/admin/SpotCrowdManagement";
 import CameraMonitoring, {
   DroneMonitoring,
 } from "../pages/admin/CameraMonitoring";
@@ -82,6 +83,7 @@ function AppRoutes() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="crowd" element={<CrowdMonitoring />} />
+          <Route path="spots" element={<SpotCrowdManagement />} />
           <Route path="cameras" element={<CameraMonitoring />} />
           <Route path="drones" element={<DroneMonitoring />} />
           <Route path="map" element={<AdminMap />} />

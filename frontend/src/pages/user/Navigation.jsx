@@ -46,7 +46,7 @@ function markerIcon(color, label) {
   });
 }
 
-const templeIcon = markerIcon("#6046e8", "T");
+const templeIcon = markerIcon("#218C4A", "T");
 const userIcon = markerIcon("#4285F4", "•");
 const destinationIcon = markerIcon("#e67e22", "★");
 const selectedDestinationIcon = markerIcon("#2ecc71", "★");
@@ -354,7 +354,7 @@ function Navigation() {
           {route.length > 1 && (
             <Polyline
               positions={route}
-              pathOptions={{ color: "#6046e8", opacity: 0.95, weight: 6 }}
+              pathOptions={{ color: "#218C4A", opacity: 0.95, weight: 6 }}
             />
           )}
 
@@ -414,12 +414,12 @@ function Navigation() {
           gap: "8px",
           padding: "12px",
           background: "#ffffff",
-          border: "1px solid #ece6ff",
+          border: "1px solid #EAF7EC",
           borderRadius: "18px",
         }}
       >
         {destinations.length === 0 ? (
-          <p role="alert" style={{ margin: 0, fontSize: "12.5px", color: "#7a719b" }}>
+          <p role="alert" style={{ margin: 0, fontSize: "12.5px", color: "#64816D" }}>
             Destination data is unavailable right now, so walking routes cannot
             be shown.
           </p>

@@ -43,13 +43,13 @@ function markerIcon(color, label) {
 
 const entryIcon = markerIcon("#2ecc71", "E");
 const queueIcon = markerIcon("#f1c40f", "Q");
-const darshanIcon = markerIcon("#6046e8", "D");
+const darshanIcon = markerIcon("#218C4A", "D");
 const exitIcon = markerIcon("#e74c3c", "X");
 
 const ROUTE_LEGEND = [
   ["Entry Gate", "#2ecc71"],
   ["Queue Area", "#f1c40f"],
-  ["Darshan Area", "#6046e8"],
+  ["Darshan Area", "#218C4A"],
   ["Exit Gate", "#e74c3c"],
 ];
 
@@ -260,7 +260,7 @@ function LiveMap() {
           {path.length > 1 && (
             <Polyline
               positions={path}
-              pathOptions={{ color: "#2563eb", weight: 6, opacity: 0.95 }}
+              pathOptions={{ color: "#218C4A", weight: 6, opacity: 0.95 }}
             />
           )}
 

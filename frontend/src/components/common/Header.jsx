@@ -1,20 +1,29 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
-function Header({ title = "Temple Civic Sense" }) {
+import LanguageSelector from "./LanguageSelector";
+
+function Header({ title }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <header className="user-header">
-      <h2 className="header-title">{title}</h2>
+      <h2 className="header-title">{title || t("common.appName")}</h2>
 
-      <button
-        className="header-bell"
-        aria-label="Notifications"
-        onClick={() => navigate("/user/alerts")}
-      >
-        🔔
-        <span className="bell-dot"></span>
-      </button>
+      <div className="header-actions">
+        <LanguageSelector />
+
+        <button
+          className="header-bell"
+          aria-label={t("common.notifications")}
+          title={t("common.notifications")}
+          onClick={() => navigate("/user/alerts")}
+        >
+          🔔
+          <span className="bell-dot"></span>
+        </button>
+      </div>
     </header>
   );
 }
