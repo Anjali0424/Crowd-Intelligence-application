@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Circle,
+  CircleMarker,
   MapContainer,
   Marker,
+  Pane,
   Polyline,
   Popup,
   TileLayer,
@@ -19,36 +21,50 @@ import {
   facilities,
   recommendedRoute,
 } from "../../data/mockTempleMapData";
+import {
+  CROWD_THRESHOLDS,
+  getCrowdColor,
+  getCrowdLabel,
+} from "../../utils/crowdLevel";
 
-const zoneColor = (level) => {
-  switch ((level || "").toUpperCase()) {
-    case "LOW":
-      return "#2ecc71";
-    case "MODERATE":
-      return "#f1c40f";
-    case "HIGH":
-      return "#e67e22";
-    case "CRITICAL":
-      return "#e74c3c";
-    default:
-      return "#7f8c8d";
-  }
+const LEVEL_EMOJI = {
+  LOW: "🟢",
+  MODERATE: "🟡",
+  HIGH: "🟠",
+  CRITICAL: "🔴",
+  NO_DATA: "⚪",
 };
+
+const zoneColor = (level) => getCrowdColor(level);
 
 const levelWord = (level) => {
-  switch ((level || "").toUpperCase()) {
-    case "LOW":
-      return "🟢 Less crowded";
-    case "MODERATE":
-      return "🟡 Busy";
-    case "HIGH":
-      return "🟠 Very busy";
-    case "CRITICAL":
-      return "🔴 Too crowded";
+  const normalised = (level || "").toUpperCase();
+  return `${LEVEL_EMOJI[normalised] || "⚪"} ${getCrowdLabel(normalised)}`;
+};
+
+const SOURCE_EMOJI = { cctv: "📹", drone: "🛸", staff: "🧑‍💼", other: "•" };
+
+const sourceWord = (source) => {
+  switch (source) {
+    case "cctv":
+      return "Camera";
+    case "drone":
+      return "Drone";
+    case "staff":
+      return "Staff";
+    case "other":
+      return "Other";
     default:
-      return "⚪ No information";
+      return source || "";
   }
 };
+
+function formatIso(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
 
 const STALE_MS = 12000;
 
@@ -110,6 +126,8 @@ function LocationMarker({ onError }) {
 
 function TempleMap({
   zoneCounts = {},
+  spots = null,
+  paths = null,
   showUser,
   showFacilities,
   showRoute,
@@ -119,6 +137,14 @@ function TempleMap({
   const handleLocationError = useCallback((error) => {
     setLocationError(error);
   }, []);
+
+  const useSpots = Array.isArray(spots);
+  const spotList = useSpots ? spots : [];
+  const pathList = Array.isArray(paths) ? paths : [];
+
+  const mappedPaths = pathList.filter(
+    (path) => Array.isArray(path.geometry) && path.geometry.length >= 2
+  );
 
   return (
     <div className="temple-map-wrapper">
@@ -146,7 +172,7 @@ function TempleMap({
           <Popup>Sri Venkateswara Swamy Temple</Popup>
         </Marker>
 
-        {crowdZones.map((zone) => {
+        {!useSpots && crowdZones.map((zone) => {
           const live = zoneCounts?.[zone.id];
           const counted = Boolean(live && live.available);
           const ageMs = live?.timestamp
@@ -209,6 +235,108 @@ function TempleMap({
           );
         })}
 
+        {useSpots && (
+          <Pane name="crowd-spots" style={{ zIndex: 450 }}>
+            {spotList.map((spot) => (
+              <CircleMarker
+                key={spot.id}
+                center={[spot.lat, spot.lng]}
+                radius={12}
+                pathOptions={{
+                  color: "#ffffff",
+                  weight: 3,
+                  fillColor: spot.color || zoneColor(spot.level),
+                  fillOpacity: 1,
+                }}
+              >
+                <Popup>
+                  <strong>{spot.name}</strong>
+                  <br />
+                  {spot.has_data ? (
+                    <>
+                      👥 {spot.people_count} people
+                      <br />
+                      {levelWord(spot.level)}
+                      {spot.density_percent != null && (
+                        <>
+                          <br />
+                          <small>{spot.density_percent}% of capacity</small>
+                        </>
+                      )}
+                      <br />
+                      <small>Updated {formatIso(spot.observed_at)}</small>
+                      <br />
+                      <small>
+                        {SOURCE_EMOJI[spot.source] || "•"} {sourceWord(spot.source)}
+                      </small>
+                    </>
+                  ) : spot.stale ? (
+                    <>
+                      👥 {spot.people_count} people
+                      <br />
+                      <small className="temple-map-popup-old">
+                        Data may be old · last {formatIso(spot.observed_at)}
+                      </small>
+                    </>
+                  ) : (
+                    <>⚪ Crowd information unavailable</>
+                  )}
+                </Popup>
+              </CircleMarker>
+            ))}
+          </Pane>
+        )}
+
+        {mappedPaths.length > 0 && (
+          <Pane name="crowd-path-halo" style={{ zIndex: 430 }}>
+            {mappedPaths.map((path) => (
+              <Polyline
+                key={`halo-${path.id}`}
+                positions={path.geometry.map(([lat, lng]) => [lat, lng])}
+                pathOptions={{
+                  color: "#ffffff",
+                  weight: 12,
+                  opacity: 0.9,
+                  lineCap: "round",
+                  lineJoin: "round",
+                }}
+              />
+            ))}
+          </Pane>
+        )}
+
+        {mappedPaths.length > 0 && (
+          <Pane name="crowd-path-line" style={{ zIndex: 440 }}>
+            {mappedPaths.map((path) => (
+              <Polyline
+                key={path.id}
+                positions={path.geometry.map(([lat, lng]) => [lat, lng])}
+                pathOptions={{
+                  color: path.color || zoneColor(path.level),
+                  weight: 8,
+                  opacity: 0.95,
+                  lineCap: "round",
+                  lineJoin: "round",
+                }}
+              >
+                <Popup>
+                  <strong>{path.name}</strong>
+                  <br />
+                  {levelWord(path.level)}
+                  {path.density_percent != null && (
+                    <>
+                      <br />
+                      <small>{path.density_percent}% at busiest point</small>
+                    </>
+                  )}
+                  <br />
+                  <small>Colour follows the most crowded mapped spot</small>
+                </Popup>
+              </Polyline>
+            ))}
+          </Pane>
+        )}
+
         {entryPoints.map((point) => (
           <Marker
             key={point.id}
@@ -254,19 +382,13 @@ function TempleMap({
       </MapContainer>
 
       <div className="temple-map-legend" aria-label="Crowd level legend">
-        {[
-          ["Less crowded", "#2ecc71"],
-          ["Busy", "#f1c40f"],
-          ["Very busy", "#e67e22"],
-          ["Too crowded", "#e74c3c"],
-          ["No information", "#9aa0a6"],
-        ].map(([label, color]) => (
-          <span key={label} className="temple-map-legend-item">
+        {Object.entries(CROWD_THRESHOLDS).map(([level, meta]) => (
+          <span key={level} className="temple-map-legend-item">
             <span
               className="temple-map-legend-dot"
-              style={{ background: color }}
+              style={{ background: meta.color }}
             />
-            {label}
+            {meta.label}
           </span>
         ))}
       </div>

@@ -1,74 +1,78 @@
-import { useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
-import { homeMockData } from "../../data/mockHomeData";
+import templeImage from "../../assets/images/temple.jpg";
 import { getCameraCounts } from "../../services/crowdService";
+import { translateData } from "../../i18n";
+import { sendChat, getSpeechLang } from "../../services/chatbotService";
+import { getDarshanCurrent, formatClock } from "../../services/darshanService";
+import "./UserHome.css";
 
 const LEVEL_META = {
-  LOW: { label: "LOW", dot: "🟢" },
-  MODERATE: { label: "MODERATE", dot: "🟡" },
-  HIGH: { label: "HIGH", dot: "🟠" },
-  CRITICAL: { label: "CRITICAL", dot: "🔴" },
+  LOW: { dot: "🟢" },
+  MODERATE: { dot: "🟡" },
+  HIGH: { dot: "🟠" },
+  CRITICAL: { dot: "🔴" },
 };
 
 function levelFromDensity(density) {
-  if (density == null) return null;
-  if (density >= 91) return "CRITICAL";
-  if (density >= 71) return "HIGH";
-  if (density >= 41) return "MODERATE";
-  return "LOW";
+  if (density === null || density === undefined) return null;
+  if (density < 40) return "LOW";
+  if (density < 70) return "MODERATE";
+  if (density < 90) return "HIGH";
+  return "CRITICAL";
 }
 
-const modules = [
-  {
-    id: "location",
-    icon: "📍",
-    title: "My Location & Path",
-    detail: homeMockData.location.note,
-    to: "/user/navigation",
-  },
-  {
-    id: "map",
-    icon: "🗺️",
-    title: "Temple Map",
-    detail: homeMockData.map.path,
-    to: "/user/map",
-  },
-  {
-    id: "route",
-    icon: "🧭",
-    title: "Recommended Route",
-    detail: `${homeMockData.route.time} • ${homeMockData.route.crowd}`,
-    to: "/user/route",
-  },
-  {
-    id: "entries",
-    icon: "🚪",
-    title: "Entry Points",
-    detail: `${homeMockData.entry.name} — ${homeMockData.entry.crowd}`,
-    to: "/user/entries",
-  },
-  {
-    id: "exits",
-    icon: "🚪",
-    title: "Exit Points",
-    detail: `${homeMockData.exit.name} — ${homeMockData.exit.crowd}`,
-    to: "/user/exits",
-  },
-  {
-    id: "alerts",
-    icon: "🚨",
-    title: "Safety Alerts",
-    detail: homeMockData.alert.text,
-    to: "/user/alerts",
-    badge: true,
-  },
-];
+function formatDuration(t, value) {
+  if (value === null || value === undefined) return "—";
+  const total = Math.round(Number(value));
+  if (!Number.isFinite(total)) return "—";
+  if (total < 60) return t("home.darshanMin", { count: total });
+  const hours = Math.floor(total / 60);
+  const minutes = total % 60;
+  if (minutes === 0) return t("home.darshanHours", { count: hours });
+  return t("home.darshanHourMin", { hours, minutes });
+}
 
 function UserHome() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
 
   const [crowd, setCrowd] = useState(null);
+  const [question, setQuestion] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [conversationId, setConversationId] = useState(null);
+  const [micState, setMicState] = useState("idle");
+  const [micError, setMicError] = useState("");
+  const [scanNotice, setScanNotice] = useState(false);
+  const [darshan, setDarshan] = useState(null);
+  const [darshanLoading, setDarshanLoading] = useState(true);
+
+  const recognitionRef = useRef(null);
+  const inputRef = useRef(null);
+  const chatRef = useRef(null);
+  const darshanRef = useRef(null);
+
+  const loadDarshan = useCallback(async () => {
+    setDarshanLoading(true);
+    try {
+      const res = await getDarshanCurrent();
+      setDarshan(res?.prediction || null);
+    } catch (err) {
+      setDarshan(null);
+    } finally {
+      setDarshanLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDarshan();
+    const timer = setInterval(loadDarshan, 60000);
+    return () => clearInterval(timer);
+  }, [loadDarshan]);
 
   useEffect(() => {
     let mounted = true;
@@ -87,98 +91,527 @@ function UserHome() {
           const density = capacity
             ? Math.round(((camera.people_count || 0) / capacity) * 100)
             : 0;
-          const current = zones[camera.zone_id];
-          if (!current || density > current.density) {
+          if (!zones[camera.zone_id] || density > zones[camera.zone_id].density) {
             zones[camera.zone_id] = {
               area: camera.zone_name,
-              people: camera.people_count || 0,
+              people: camera.people_count,
               capacity,
               density,
             };
           }
         }
-        const busiest = Object.values(zones).sort(
+        const best = Object.values(zones).sort(
           (a, b) => b.density - a.density
         )[0];
-        setCrowd(
-          busiest
-            ? { ...busiest, level: levelFromDensity(busiest.density) }
-            : null
-        );
+        setCrowd(best || null);
       } catch (err) {
-        if (mounted) setCrowd(null);
+        if (!mounted) return;
+        setCrowd(null);
       }
     }
 
     load();
-    timer = setInterval(load, 1500);
-
+    timer = setInterval(load, 12000);
     return () => {
       mounted = false;
       clearInterval(timer);
     };
   }, []);
 
-  const meta = crowd?.level ? LEVEL_META[crowd.level] : null;
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (err) {
+          /* ignore */
+        }
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
+
+  const appLang = (i18n.language || "en").slice(0, 2);
+  const languageCode = ["en", "hi", "mr", "te"].includes(appLang)
+    ? appLang
+    : "en";
+
+  const scrollToChat = () => {
+    if (chatRef.current) {
+      chatRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const scrollToDarshan = () => {
+    if (darshanRef.current) {
+      darshanRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  };
+
+  async function submitQuestion(text) {
+    const value = (text ?? question).trim();
+    if (!value || loading) return;
+
+    setError(null);
+    const history = messages.map((m) => ({ role: m.role, content: m.content }));
+    setMessages((prev) => [...prev, { role: "user", content: value }]);
+    setQuestion("");
+    setLoading(true);
+
+    try {
+      const res = await sendChat({
+        message: value,
+        language: languageCode,
+        conversationId,
+        history,
+      });
+      if (res?.conversation_id) setConversationId(res.conversation_id);
+      setMessages((prev) => [
+        ...prev,
+        { role: "model", content: res?.reply ?? "" },
+      ]);
+    } catch (err) {
+      const detail =
+        err?.response?.data?.detail || err?.message || t("home.chatError");
+      setError(typeof detail === "string" ? detail : t("home.chatError"));
+      setMessages((prev) => [
+        ...prev,
+        { role: "model", content: t("home.chatError") },
+      ]);
+    } finally {
+      setLoading(false);
+      if (inputRef.current) inputRef.current.focus();
+    }
+  }
+
+  function handleMicClick() {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setMicState("error");
+      setMicError(t("home.voiceUnsupported"));
+      return;
+    }
+
+    if (micState === "listening" && recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (err) {
+        /* ignore */
+      }
+      setMicState("processing");
+      return;
+    }
+
+    setMicError("");
+    setScanNotice(false);
+    const recognition = new SpeechRecognition();
+    recognition.lang = getSpeechLang(languageCode);
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setMicState("listening");
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event?.results?.[0]?.[0]?.transcript ?? "";
+      if (!transcript.trim()) {
+        setMicState("error");
+        setMicError(t("home.voiceEmpty"));
+      } else {
+        setQuestion(transcript.trim());
+        submitQuestion(transcript.trim());
+        scrollToChat();
+      }
+    };
+
+    recognition.onerror = (event) => {
+      const code = event?.error || "";
+      if (code === "not-allowed" || code === "service-not-allowed") {
+        setMicError(t("home.voiceDenied"));
+      } else if (code === "audio-capture") {
+        setMicError(t("home.voiceNoMic"));
+      } else if (code === "no-speech") {
+        setMicError(t("home.voiceEmpty"));
+      } else {
+        setMicError(t("home.voiceError"));
+      }
+      setMicState(code === "aborted" ? "idle" : "error");
+    };
+
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      setMicState((prev) => (prev === "error" ? "error" : "idle"));
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+      setMicState("listening");
+    } catch (err) {
+      setMicState("error");
+      setMicError(t("home.voiceError"));
+    }
+  }
+
+  function handleScanClick() {
+    setScanNotice(true);
+  }
+
+  const suggestions = [
+    t("home.askQ1"),
+    t("home.askQ2"),
+    t("home.askQ3"),
+    t("home.askQ4"),
+  ];
+
+  const services = [
+    {
+      id: "darshan",
+      icon: "⏱️",
+      name: t("home.svcDarshan"),
+      action: scrollToDarshan,
+    },
+    { id: "crowd", icon: "👥", name: t("home.svcCrowd"), to: "/user/crowd" },
+    { id: "map", icon: "🗺️", name: t("home.svcMap"), to: "/user/map" },
+    {
+      id: "navigation",
+      icon: "🧭",
+      name: t("home.svcNavigate"),
+      to: "/user/navigation",
+    },
+    { id: "route", icon: "🛣️", name: t("home.svcRoute"), to: "/user/route" },
+    { id: "entries", icon: "🚪", name: t("home.svcEntry"), to: "/user/entries" },
+    { id: "exits", icon: "🚪", name: t("home.svcExit"), to: "/user/exits" },
+    { id: "alerts", icon: "🚨", name: t("home.svcAlerts"), to: "/user/alerts" },
+    {
+      id: "profile",
+      icon: "👤",
+      name: t("home.svcProfile"),
+      to: "/user/profile",
+    },
+  ];
+
+  const voiceActionLabel =
+    micState === "listening"
+      ? t("home.voiceStop")
+      : micState === "processing"
+      ? t("home.voiceProcessing")
+      : t("home.voiceActionTitle");
+
+  const voiceActionHint =
+    micState === "listening"
+      ? t("home.voiceListening")
+      : micState === "processing"
+      ? t("home.voiceProcessing")
+      : t("home.voiceHintShort");
 
   return (
-    <div className="user-home">
-      {/* Greeting */}
-      <section className="greeting">
-        <h1>Good Morning 🙏</h1>
-        <p>Your smart guide for a safer and smoother darshan.</p>
-      </section>
+    <div className="dh-home">
+      <section className="dh-hero">
+        <img
+          className="dh-hero-img"
+          src={templeImage}
+          alt=""
+          aria-hidden="true"
+        />
+        <div className="dh-hero-overlay" aria-hidden="true" />
 
-      {/* Live Crowd Feature Card */}
-      <section
-        className="live-crowd-card"
-        role="button"
-        tabIndex={0}
-        onClick={() => navigate("/user/crowd")}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") navigate("/user/crowd");
-        }}
-      >
-        <div className="live-crowd-top">
-          <span className="live-crowd-label">LIVE CROWD</span>
-          <span className="live-crowd-status">
-            {meta ? `${meta.dot} ${meta.label}` : "⚪ NO DATA"}
+        <div className="dh-hero-content">
+          <p className="dh-hero-kicker">{t("home.heroKicker")}</p>
+          <h1 className="dh-hero-title">{t("home.greeting")}</h1>
+          <p className="dh-hero-sub">{t("home.greetingSub")}</p>
+        </div>
+
+        <button
+          type="button"
+          className="dh-hero-crowd"
+          onClick={() => navigate("/user/crowd")}
+          aria-label={t("home.viewCrowd")}
+        >
+          <span className="dh-hero-crowd-label">{t("home.liveCrowd")}</span>
+          <span className="dh-hero-crowd-status">
+            {levelFromDensity(crowd?.density)
+              ? `${LEVEL_META[levelFromDensity(crowd.density)].dot} ${t(
+                  "levels." + levelFromDensity(crowd.density)
+                )}`
+              : t("home.noData")}
           </span>
-        </div>
-
-        <div className="live-crowd-body">
-          <h2>{crowd?.area || "No live data"}</h2>
-          <p>
+          <span className="dh-hero-crowd-area">
+            {crowd ? translateData(t, crowd.area) : t("home.monitoringStatus")}
+          </span>
+          <span className="dh-hero-crowd-meta">
             {crowd
-              ? `${crowd.people}/${crowd.capacity} people • ${crowd.density}% full`
-              : "Counting not active"}
-          </p>
-        </div>
-
-        <div className="live-crowd-action">View Crowd →</div>
+              ? t("home.peopleFull", {
+                  people: crowd.people,
+                  capacity: crowd.capacity,
+                  density: crowd.density,
+                })
+              : t("home.countingNotActive")}
+          </span>
+        </button>
       </section>
 
-      {/* Smart Navigation */}
-      <section className="modules-section">
-        <h3 className="section-title">Smart Navigation</h3>
+      <section className="dh-actions" aria-label={t("home.quickActions")}>
+        <div className="dh-action">
+          <button
+            type="button"
+            className="dh-action-btn"
+            onClick={handleScanClick}
+            aria-label={t("home.scanTitle")}
+          >
+            <span className="dh-action-icon" aria-hidden="true">
+              📷
+            </span>
+          </button>
+          <span className="dh-action-label">{t("home.scanTitle")}</span>
+          <span className="dh-action-hint">{t("home.scanHint")}</span>
+        </div>
 
-        <div className="module-grid">
-          {modules.map((module) => (
+        <div className="dh-action">
+          <button
+            type="button"
+            className={
+              micState === "listening"
+                ? "dh-action-btn listening"
+                : "dh-action-btn"
+            }
+            onClick={handleMicClick}
+            aria-label={t("home.voiceActionTitle")}
+            aria-pressed={micState === "listening"}
+          >
+            <span className="dh-action-icon" aria-hidden="true">
+              {micState === "listening" ? "⏹" : "🎤"}
+            </span>
+          </button>
+          <span className="dh-action-label">{voiceActionLabel}</span>
+          <span className="dh-action-hint">{voiceActionHint}</span>
+        </div>
+      </section>
+
+      {scanNotice && (
+        <p className="dh-notice" role="status">
+          {t("home.scanUnavailable")}
+        </p>
+      )}
+      {micState === "error" && micError && (
+        <p className="dh-notice dh-notice-error" role="alert">
+          {micError}
+        </p>
+      )}
+      <section className="dh-services">
+        <div className="dh-section-head">
+          <h2 className="dh-section-title">{t("home.servicesTitle")}</h2>
+          <span className="dh-section-sub">{t("home.servicesSub")}</span>
+        </div>
+
+        <div className="dh-service-grid">
+          {services.map((service) => (
             <button
-              key={module.id}
-              className="module-card"
-              onClick={() => navigate(module.to)}
+              key={service.id}
+              type="button"
+              className="dh-service-card"
+              onClick={() =>
+                service.action ? service.action() : navigate(service.to)
+              }
             >
-              <div className="module-icon">{module.icon}</div>
-
-              <h4 className="module-title">{module.title}</h4>
-
-              <p className="module-detail">{module.detail}</p>
-
-              <span className="module-arrow">→</span>
+              <span className="dh-service-icon" aria-hidden="true">
+                {service.icon}
+              </span>
+              <span className="dh-service-name">{service.name}</span>
             </button>
           ))}
         </div>
+      </section>
+
+      <section
+        className="dh-darshan"
+        aria-labelledby="dh-darshan-title"
+        ref={darshanRef}
+      >
+        <div className="dh-darshan-head">
+          <div className="dh-darshan-title-wrap">
+            <span className="dh-darshan-icon" aria-hidden="true">
+              ⏱️
+            </span>
+            <div>
+              <h3 id="dh-darshan-title" className="dh-darshan-title">
+                {t("home.darshanTitle")}
+              </h3>
+              <p className="dh-darshan-subtitle">
+                {t("home.darshanSubtitle")}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="dh-darshan-refresh"
+            onClick={loadDarshan}
+            aria-label={t("home.darshanRefresh")}
+            title={t("home.darshanRefresh")}
+          >
+            ↻
+          </button>
+        </div>
+
+        {darshanLoading && !darshan ? (
+          <p className="dh-darshan-state">{t("common.loading")}</p>
+        ) : darshan && darshan.available ? (
+          <>
+            <div className="dh-darshan-grid">
+              <div className="dh-darshan-metric">
+                <span>{t("home.darshanCrowdLevel")}</span>
+                <b>
+                  {darshan.crowd_level
+                    ? `${LEVEL_META[darshan.crowd_level].dot} ${t(
+                        "levels." + darshan.crowd_level
+                      )}`
+                    : "—"}
+                </b>
+              </div>
+              <div className="dh-darshan-metric">
+                <span>{t("home.darshanQueueWait")}</span>
+                <b>{formatDuration(t, darshan.wait_minutes)}</b>
+              </div>
+              <div className="dh-darshan-metric highlight">
+                <span>{t("home.darshanTotal")}</span>
+                <b>{formatDuration(t, darshan.total_minutes)}</b>
+              </div>
+              <div className="dh-darshan-metric">
+                <span>{t("home.darshanCompletion")}</span>
+                <b>{formatClock(darshan.expected_completion)}</b>
+              </div>
+            </div>
+
+            <p className="dh-darshan-note">
+              {t("home.darshanNote")}
+              {darshan.confidence
+                ? ` · ${t("home.darshanConfidence")}: ${t(
+                    "home.darshanConf" +
+                      darshan.confidence.charAt(0).toUpperCase() +
+                      darshan.confidence.slice(1)
+                  )}`
+                : ""}
+            </p>
+          </>
+        ) : (
+          <p className="dh-darshan-state">
+            {t("home.darshanUnavailable")}
+            <span className="dh-darshan-hint">
+              {t("home.darshanUnavailableHint")}
+            </span>
+          </p>
+        )}
+      </section>
+
+      <section
+        className="dh-ai-card"
+        aria-labelledby="dh-ai-title"
+        ref={chatRef}
+      >
+        <div className="dh-ai-head">
+          <span className="dh-ai-icon" aria-hidden="true">
+            🤖
+          </span>
+          <div>
+            <h3 id="dh-ai-title" className="dh-ai-title">
+              {t("home.askTitle")}
+            </h3>
+            <p className="dh-ai-subtitle">{t("home.askSubtitle")}</p>
+          </div>
+        </div>
+
+        <div className="dh-ai-chips">
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className="dh-ai-chip"
+              onClick={() => submitQuestion(s)}
+              disabled={loading}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        <div className="dh-ai-chat" aria-live="polite">
+          {messages.map((m, idx) => (
+            <div
+              key={idx}
+              className={
+                m.role === "user"
+                  ? "dh-ai-bubble dh-ai-user"
+                  : "dh-ai-bubble dh-ai-model"
+              }
+            >
+              {m.content}
+            </div>
+          ))}
+          {loading && (
+            <div className="dh-ai-bubble dh-ai-model dh-ai-typing">
+              {t("home.chatTyping")}
+            </div>
+          )}
+        </div>
+
+        {error && <p className="dh-ai-error">{error}</p>}
+
+        <form
+          className="dh-ai-input-row"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitQuestion();
+          }}
+        >
+          <input
+            ref={inputRef}
+            type="text"
+            className="dh-ai-input"
+            placeholder={t("home.askPlaceholder")}
+            aria-label={t("home.askPlaceholder")}
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                submitQuestion();
+              }
+            }}
+          />
+          <button
+            type="button"
+            className={
+              micState === "listening" ? "dh-ai-mic listening" : "dh-ai-mic"
+            }
+            aria-label={t("home.voice")}
+            title={t("home.voice")}
+            aria-pressed={micState === "listening"}
+            onClick={handleMicClick}
+          >
+            <span aria-hidden="true">
+              {micState === "listening" ? "⏹" : "🎤"}
+            </span>
+          </button>
+          <button
+            type="submit"
+            className="dh-ai-send"
+            aria-label={t("home.send")}
+            title={t("home.send")}
+            disabled={loading}
+          >
+            <span aria-hidden="true">➤</span>
+          </button>
+        </form>
+
+        <p className="dh-ai-note">{t("home.voiceHint")}</p>
       </section>
     </div>
   );

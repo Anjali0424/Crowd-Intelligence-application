@@ -3,14 +3,16 @@ import { NavLink } from "react-router-dom";
 const navItems = [
   { to: "/admin", icon: "🏠", label: "Dashboard", end: true },
   { to: "/admin/crowd", icon: "👥", label: "Crowd" },
+  { to: "/admin/spots", icon: "📍", label: "Spot Crowd" },
   { to: "/admin/alerts", icon: "🚨", label: "Alerts" },
+  { to: "/admin/barricade", icon: "🚧", label: "Barricade" },
   { to: "/admin/cameras", icon: "📹", label: "Cameras" },
   { to: "/admin/drones", icon: "🛸", label: "Drones" },
   { to: "/admin/analytics", icon: "📊", label: "Analytics" },
   {
     to: "/admin/hourly-crowd",
-    icon: "🕒",
-    label: "Hourly Forecast",
+    icon: "⏱️",
+    label: "Darshan Forecast",
   },
 ];
 

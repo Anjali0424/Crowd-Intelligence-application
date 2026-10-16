@@ -1,154 +1,56 @@
 import { useEffect, useState } from "react";
 
-import { getCameraCounts } from "../../services/crowdService";
+import { getCrowdMap, formatClock, sourceLabel } from "../../services/crowdMapService";
 import TempleMap from "../../components/user/TempleMap";
-import { crowdZones } from "../../data/mockTempleMapData";
+import { getCrowdCardColors, getCrowdLabel } from "../../utils/crowdLevel";
 
-const STALE_MS = 12000;
+const POLL_MS = 5000;
 
-const ZONE_CAPACITY = Object.fromEntries(
-  crowdZones.map((zone) => [zone.id, zone.capacity])
-);
-
-function levelFromDensity(density) {
-  if (density == null) return null;
-  if (density >= 91) return "CRITICAL";
-  if (density >= 71) return "HIGH";
-  if (density >= 41) return "MODERATE";
-  return "LOW";
-}
-
-function formatTime(timestamp) {
-  if (!timestamp) return "";
-  return new Date(timestamp * 1000).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function buildZoneCounts(cameras) {
-  const zones = {};
-
-  for (const camera of cameras) {
-    const zoneId = camera.zone_id;
-    if (!zoneId) continue;
-
-    if (!zones[zoneId]) {
-      zones[zoneId] = {
-        available: false,
-        processing: false,
-        people: 0,
-        capacity: ZONE_CAPACITY[zoneId] || camera.capacity || null,
-        timestamp: 0,
-        sourceId: null,
-        sourceName: null,
-        sourceKind: null,
-      };
-    }
-
-    const zone = zones[zoneId];
-    if (camera.available && camera.has_count) {
-      zone.available = true;
-      zone.processing = zone.processing || Boolean(camera.processing);
-      const people = camera.people_count || 0;
-      if (people >= zone.people) {
-        zone.people = people;
-        zone.sourceId = camera.camera_id || camera.id;
-        zone.sourceName = camera.name;
-        zone.sourceKind = camera.kind || "camera";
-      }
-      zone.timestamp = Math.max(zone.timestamp, camera.timestamp || 0);
-    }
-  }
-
-  for (const zoneId of Object.keys(zones)) {
-    const zone = zones[zoneId];
-    if (zone.available && zone.capacity) {
-      zone.density = Math.round((zone.people / zone.capacity) * 100);
-      zone.level = levelFromDensity(zone.density);
-    }
-  }
-
-  return zones;
-}
-
-function CrowdHeatmap({ zoneCounts }) {
-  const colors = {
-    LOW: "#22c55e",
-    MODERATE: "#facc15",
-    HIGH: "#f97316",
-    CRITICAL: "#ef4444",
-  };
-
-  const labels = {
-    LOW: "Less crowded",
-    MODERATE: "Busy",
-    HIGH: "Very crowded",
-    CRITICAL: "Too crowded",
-  };
-
+function SpotHeatmap({ spots }) {
   return (
     <section className="crowd-heatmap">
       <h2>🗺️ Crowd Heatmap</h2>
-      <p className="heatmap-subtitle">
-        See which temple areas are crowded
-      </p>
+      <p className="heatmap-subtitle">See which temple areas are crowded</p>
 
       <div className="heatmap-grid">
-        {crowdZones.map((zone) => {
-          const data = zoneCounts[zone.id];
-          const counted = Boolean(data?.available);
-          const ageMs = data?.timestamp
-            ? Date.now() - data.timestamp * 1000
-            : Infinity;
-          const stale = counted && ageMs > STALE_MS;
-          const hasLive = counted && !stale && Boolean(data?.capacity && data?.level);
-
-          const level = hasLive ? data.level : null;
-          const color = hasLive ? colors[level] : "#d1d5db";
-          const textColor = !hasLive
-            ? "#4b5563"
-            : level === "MODERATE"
-            ? "#422006"
-            : "#ffffff";
+        {spots.length === 0 && (
+          <p className="heatmap-empty">
+            No crowd information available right now. Please check back shortly.
+          </p>
+        )}
+        {spots.map((spot) => {
+          const level = spot.has_data ? spot.level : "NO_DATA";
+          const card = getCrowdCardColors(level);
 
           return (
-            <div
-              key={zone.id}
-              className="heatmap-zone"
-              style={{ backgroundColor: color, color: textColor }}
-            >
-              <strong>{zone.name}</strong>
+            <div key={spot.id} className="heatmap-zone" style={card}>
+              <strong>{spot.name}</strong>
 
-              {hasLive ? (
+              {spot.has_data ? (
                 <>
                   <span className="heatmap-count">
-                    {data.people} people
+                    {spot.people_count} people
                   </span>
-                  <span className="heatmap-label">
-                    {labels[level] || "Less crowded"}
+                  <span className="heatmap-meta">
+                    {getCrowdLabel(level)}
+                    {spot.density_percent != null &&
+                      ` · ${spot.density_percent}% full`}
                   </span>
-                  <span className="heatmap-density">
-                    {data.density}% full
-                  </span>
-                  <span className="heatmap-time">
-                    Updated {formatTime(data.timestamp)}
-                  </span>
-                  <span className="heatmap-source">
-                    {data.sourceKind === "drone" ? "🛸" : "📹"}{" "}
-                    {data.sourceName || data.sourceId || "video"}
+                  <span className="heatmap-foot">
+                    Updated {formatClock(spot.observed_at)} ·{" "}
+                    {sourceLabel(spot.source)}
                   </span>
                 </>
-              ) : stale ? (
+              ) : spot.stale ? (
                 <>
-                  <span className="heatmap-count">{data.people} people</span>
-                  <span className="heatmap-label">Data may be old</span>
-                  <span className="heatmap-time">
-                    Last {formatTime(data.timestamp)}
+                  <span className="heatmap-count">{spot.people_count} people</span>
+                  <span className="heatmap-meta">Data may be old</span>
+                  <span className="heatmap-foot">
+                    Updated {formatClock(spot.observed_at)}
                   </span>
                 </>
               ) : (
-                <span className="heatmap-label">Not started</span>
+                <span className="heatmap-meta">No crowd data</span>
               )}
             </div>
           );
@@ -158,9 +60,8 @@ function CrowdHeatmap({ zoneCounts }) {
   );
 }
 
-
 function CrowdAreas() {
-  const [cameras, setCameras] = useState([]);
+  const [mapData, setMapData] = useState(null);
   const [error, setError] = useState(null);
   const [showFacilities, setShowFacilities] = useState(false);
   const [showRoute, setShowRoute] = useState(false);
@@ -172,9 +73,9 @@ function CrowdAreas() {
 
     async function fetchData() {
       try {
-        const res = await getCameraCounts();
+        const res = await getCrowdMap();
         if (!mounted) return;
-        setCameras(res.cameras || []);
+        setMapData(res);
         setError(null);
       } catch (err) {
         if (mounted) setError("Could not load crowd information.");
@@ -182,7 +83,7 @@ function CrowdAreas() {
     }
 
     fetchData();
-    timer = setInterval(fetchData, 1500);
+    timer = setInterval(fetchData, POLL_MS);
 
     return () => {
       mounted = false;
@@ -190,24 +91,9 @@ function CrowdAreas() {
     };
   }, []);
 
-  const zoneCounts = buildZoneCounts(cameras);
-
-  const countedCameras = cameras.filter(
-    (camera) => camera.zone_id && camera.available && camera.has_count
-  );
-  const newest = countedCameras.reduce(
-    (max, camera) => Math.max(max, camera.timestamp || 0),
-    0
-  );
-  const isStale =
-    countedCameras.length > 0 && Date.now() - newest * 1000 > STALE_MS;
-
-  const updatedText =
-    countedCameras.length === 0
-      ? "Not started"
-      : isStale
-      ? `Data may be old · last ${formatTime(newest)}`
-      : `Updated ${formatTime(newest)}`;
+  const spots = mapData?.spots || [];
+  const paths = mapData?.paths || [];
+  const updatedText = formatClock(mapData?.generated_at);
 
   return (
     <div className="crowd-areas">
@@ -246,7 +132,8 @@ function CrowdAreas() {
 
       <div className="crowd-map-shell">
         <TempleMap
-          zoneCounts={zoneCounts}
+          spots={spots}
+          paths={paths}
           showUser={showUser}
           showFacilities={showFacilities}
           showRoute={showRoute}
@@ -254,13 +141,17 @@ function CrowdAreas() {
       </div>
 
       <div className="crowd-map-foot">
-        <span>📹 From video analysis — may differ from the real crowd</span>
-        <span className="crowd-map-updated">{updatedText}</span>
+        <span>
+          {mapData?.note ||
+            "Crowd status is based on staff and camera observations and may differ from actual conditions."}
+        </span>
+        {updatedText && (
+          <span className="crowd-map-updated">Updated {updatedText}</span>
+        )}
       </div>
 
-      <CrowdHeatmap zoneCounts={zoneCounts} />
+      <SpotHeatmap spots={spots} />
     </div>
-    
   );
 }
 

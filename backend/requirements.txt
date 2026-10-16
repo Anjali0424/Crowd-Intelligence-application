@@ -5,3 +5,8 @@ opencv-python
 ultralytics
 pydantic
 python-multipart
+sqlalchemy
+scikit-learn
+joblib
+python-dotenv
+google-genai
