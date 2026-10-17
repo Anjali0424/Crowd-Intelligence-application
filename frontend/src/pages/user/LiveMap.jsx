@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
+  Circle,
   MapContainer,
   Marker,
   Polyline,
@@ -45,6 +47,7 @@ const entryIcon = markerIcon("#2ecc71", "E");
 const queueIcon = markerIcon("#f1c40f", "Q");
 const darshanIcon = markerIcon("#218C4A", "D");
 const exitIcon = markerIcon("#e74c3c", "X");
+const focusIcon = markerIcon("#218C4A", "★");
 
 const ROUTE_LEGEND = [
   ["Entry Gate", "#2ecc71"],
@@ -102,7 +105,32 @@ function FitRoute({ path }) {
   return null;
 }
 
+function FocusView({ point }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (point) {
+      map.flyTo([point.lat, point.lng], 18, { duration: 0.8 });
+    }
+  }, [map, point]);
+
+  return null;
+}
+
 function LiveMap() {
+  const [searchParams] = useSearchParams();
+  const focusId = searchParams.get("focus");
+
+  const focusPoint = useMemo(() => {
+    if (!focusId) return null;
+    return (
+      entryPoints.find((entry) => entry.id === focusId) ||
+      crowdZones.find((zone) => zone.id === focusId) ||
+      exitPoints.find((point) => point.id === focusId) ||
+      null
+    );
+  }, [focusId]);
+
   const waypoints = useMemo(() => {
     const queue = crowdZones.find((zone) => zone.id === "queue-area");
     const darshan = crowdZones.find((zone) => zone.id === "darshan-area");
@@ -279,7 +307,32 @@ function LiveMap() {
             </Marker>
           ))}
 
-          <FitRoute path={path} />
+          {focusPoint && (
+            <>
+              <Circle
+                center={[focusPoint.lat, focusPoint.lng]}
+                radius={35}
+                pathOptions={{
+                  color: "#218C4A",
+                  fillColor: "#218C4A",
+                  fillOpacity: 0.25,
+                  weight: 2,
+                }}
+              />
+              <Marker
+                position={[focusPoint.lat, focusPoint.lng]}
+                icon={focusIcon}
+                title={focusPoint.name || "Entry point"}
+              >
+                <Popup>
+                  <strong>{focusPoint.name || "Entry point"}</strong>
+                </Popup>
+              </Marker>
+            </>
+          )}
+
+          <FocusView point={focusPoint} />
+          {!focusPoint && <FitRoute path={path} />}
         </MapContainer>
 
         <div className="temple-map-legend" aria-label="Route markers">

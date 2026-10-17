@@ -40,6 +40,7 @@ import AdminAlerts from "../pages/admin/Alerts";
 import Resources from "../pages/admin/Resorces";
 import Analytics from "../pages/admin/Analytics";
 import StaffProfile from "../pages/admin/StaffProfile";
+import BarricadeMonitoring from "../pages/admin/BarricadeMonitoring";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -85,6 +86,7 @@ function AppRoutes() {
           <Route path="crowd" element={<CrowdMonitoring />} />
           <Route path="spots" element={<SpotCrowdManagement />} />
           <Route path="cameras" element={<CameraMonitoring />} />
+          <Route path="barricade" element={<BarricadeMonitoring />} />
           <Route path="drones" element={<DroneMonitoring />} />
           <Route path="map" element={<AdminMap />} />
           <Route path="prediction" element={<Prediction />} />

@@ -9,5 +9,19 @@ backend/models/
 # Python
 __pycache__/
 *.pyc
+*.py[cod]
 
+# Environment secrets
+.env
+.env.*
+!.env.example
 
+# Node dependencies
+node_modules/
+
+# Frontend build
+frontend/dist/
+
+# Video and model assets (keep out of normal Git commits)
+backend/videos/*.mp4
+backend/yolov11n.pt

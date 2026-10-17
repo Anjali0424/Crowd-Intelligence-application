@@ -76,6 +76,16 @@ function AdminDashboard() {
             <h4>Camera Monitoring</h4>
           </button>
 
+          {/* AI Barricade Monitoring (New) */}
+          <button
+            type="button"
+            className="adm-module adm-module-compact module-highlight"
+            onClick={() => navigate("/admin/barricade")}
+          >
+            <span className="adm-module-icon">🚧</span>
+            <h4>AI Barricade Monitoring</h4>
+          </button>
+
           {/* 3 — Temple Crowd Map */}
           <button
             type="button"

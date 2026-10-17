@@ -58,6 +58,15 @@ CAMERA_FILES: Dict[str, Dict[str, Any]] = {
         "zone_name": "Main Darshan Gate",
         "capacity": 300,
     },
+    "CAM-TEMPLE": {
+        "name": "Temple CCTV (temple_civic_video.mp4)",
+        "filename": "temple_civic_video.mp4",
+        "location": "Temple Barricade Gate (Main CCTV)",
+        "zone_id": "main-gate",
+        "zone_name": "Main Darshan Gate",
+        "capacity": 250,
+        "kind": "camera",
+    },
     "DRONE-01": {
         "name": "Temple Overview Drone",
         "filename": "DRONE-01_Temple_Overview.mp4",
@@ -70,6 +79,11 @@ CAMERA_FILES: Dict[str, Dict[str, Any]] = {
 }
 
 ALIASES = {
+    "temple": "CAM-TEMPLE",
+    "temple_civic_video": "CAM-TEMPLE",
+    "temple_civic_video.mp4": "CAM-TEMPLE",
+    "temple-cctv": "CAM-TEMPLE",
+    "cctv": "CAM-TEMPLE",
     "crowd": "CAM-DEMO",
     "crowd.mp4": "CAM-DEMO",
     "demo": "CAM-DEMO",
@@ -77,7 +91,7 @@ ALIASES = {
     "drone-01": "DRONE-01",
 }
 
-ORDER = ["CAM-01", "CAM-05", "CAM-06", "CAM-07", "CAM-09", "CAM-DEMO", "DRONE-01"]
+ORDER = ["CAM-TEMPLE", "CAM-01", "CAM-05", "CAM-06", "CAM-07", "CAM-09", "CAM-DEMO", "DRONE-01"]
 
 
 def normalize_id(camera_id: str) -> Optional[str]:
@@ -97,11 +111,14 @@ def normalize_id(camera_id: str) -> Optional[str]:
 
 def video_path(camera_id: str) -> Optional[Path]:
     cid = normalize_id(camera_id)
-    if not cid:
-        return None
-    path = VIDEOS_DIR / CAMERA_FILES[cid]["filename"]
-    if path.exists() and path.is_file():
-        return path
+    if cid and cid in CAMERA_FILES:
+        path = (VIDEOS_DIR / CAMERA_FILES[cid]["filename"]).resolve()
+        if path.exists() and path.is_file():
+            return path
+    # Also check if raw camera_id is a direct file inside VIDEOS_DIR
+    direct = (VIDEOS_DIR / camera_id.strip()).resolve()
+    if direct.exists() and direct.is_file():
+        return direct
     return None
 
 

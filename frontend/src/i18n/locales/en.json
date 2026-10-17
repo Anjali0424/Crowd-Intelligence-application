@@ -286,12 +286,87 @@
     "desc": "Your profile and settings will appear here."
   },
   "entries": {
-    "title": "Entry Points",
-    "desc": "Temple entrance options and crowd levels will appear here."
+    "title": "Temple Entry Points",
+    "desc": "Temple entrance options and crowd levels will appear here.",
+    "subtitle": "Live crowd levels and waiting times at each temple entrance.",
+    "legendTitle": "Crowd level",
+    "entryPoint": "Entry point",
+    "approximate": "approx. location",
+    "navigate": "View on route map",
+    "tapHint": "Tap a marker for details",
+    "demoNote": "Locations marked approximate are estimated positions until they are verified on site.",
+    "close": "Close",
+    "loading": "Loading entry points…",
+    "error": "Could not load entry points.",
+    "retry": "Retry",
+    "empty": "No entry points available right now.",
+    "crowd": "Crowd",
+    "noCrowdData": "Crowd data unavailable.",
+    "ofCapacity": "of {{value}} capacity",
+    "wait": "Est. wait",
+    "waitMin": "{{value}} min",
+    "waitUnavailable": "Not available",
+    "density": "{{value}}% full",
+    "updatedAt": "Updated {{value}}",
+    "levels": {
+      "LOW": "Less crowded",
+      "MODERATE": "Busy",
+      "HIGH": "Very busy",
+      "CRITICAL": "Too crowded",
+      "NO_DATA": "No information"
+    },
+    "status": {
+      "open": "Open",
+      "busy": "Busy",
+      "closed": "Closed"
+    },
+    "names": {
+      "main": "Main Entrance",
+      "north": "North Entry Gate",
+      "south": "South Entry Gate",
+      "east": "East Entry Gate",
+      "west": "West Entry Gate",
+      "darshan": "Darshan Entry Gate"
+    }
   },
   "exits": {
     "title": "Exit Points",
-    "desc": "Nearby and less crowded exits will appear here."
+    "desc": "Nearby and less crowded exits will appear here.",
+    "subtitle": "Live exit status across the temple",
+    "legendTitle": "Exit status",
+    "exitPoint": "Exit point",
+    "approximate": "approx. location",
+    "navigate": "View on route map",
+    "tapHint": "Tap an exit for details",
+    "close": "Close",
+    "loading": "Loading exit points.",
+    "error": "Could not load exit points.",
+    "retry": "Retry",
+    "empty": "No exit points available right now.",
+    "summaryTitle": "Exit status summary",
+    "findSafest": "Find safest available exit",
+    "suggested": "Suggested: {{value}}",
+    "crowd": "Crowd",
+    "noCrowdData": "Crowd data unavailable.",
+    "ofCapacity": "of {{value}} capacity",
+    "wait": "Est. wait",
+    "waitMin": "{{value}} min",
+    "waitUnavailable": "Not available",
+    "updatedAt": "Updated {{value}}",
+    "closedReason": "Reason: {{value}}",
+    "demoNote": "Exit locations marked approximate are estimated until confirmed on site. Status is set by temple staff.",
+    "summary": {
+      "OPEN": "{{value}} open",
+      "BUSY": "{{value}} busy",
+      "CLOSED": "{{value}} closed",
+      "UNKNOWN": "{{value}} unknown"
+    },
+    "status": {
+      "OPEN": "Open",
+      "BUSY": "Busy",
+      "CLOSED": "Closed",
+      "UNKNOWN": "Status unknown"
+    }
   },
   "alerts": {
     "title": "Safety Alerts",

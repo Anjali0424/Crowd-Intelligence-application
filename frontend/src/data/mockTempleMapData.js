@@ -39,23 +39,121 @@ export const crowdZones = [
   },
 ];
 
+// Devotee-facing entry gates. Coordinates come from the project's own temple
+// map data; `verified: false` marks an approximate position that must be
+// confirmed on site. Only entries with a `spotId` linked to a seeded crowd spot
+// can receive live crowd counts from the backend `/api/crowd/map` endpoint.
 export const entryPoints = [
   {
-    id: "entry-1",
+    id: "entry-main",
     name: "Main Entrance",
-    lat: 13.6840,
-    lng: 79.3475,
+    i18nKey: "main",
+    lat: 13.6835,
+    lng: 79.3473,
     type: "ENTRY",
+    spotId: "main-gate",
+    verified: true,
+  },
+  {
+    id: "entry-north",
+    name: "North Entry Gate",
+    i18nKey: "north",
+    lat: 13.6851,
+    lng: 79.3478,
+    type: "ENTRY",
+    spotId: null,
+    verified: false,
+  },
+  {
+    id: "entry-south",
+    name: "South Entry Gate",
+    i18nKey: "south",
+    lat: 13.6827,
+    lng: 79.3464,
+    type: "ENTRY",
+    spotId: null,
+    verified: false,
+  },
+  {
+    id: "entry-east",
+    name: "East Entry Gate",
+    i18nKey: "east",
+    lat: 13.6842,
+    lng: 79.3483,
+    type: "ENTRY",
+    spotId: null,
+    verified: false,
+  },
+  {
+    id: "entry-west",
+    name: "West Entry Gate",
+    i18nKey: "west",
+    lat: 13.6841,
+    lng: 79.3458,
+    type: "ENTRY",
+    spotId: null,
+    verified: false,
+  },
+  {
+    id: "entry-darshan",
+    name: "Darshan Entry Gate",
+    i18nKey: "darshan",
+    lat: 13.6830,
+    lng: 79.3471,
+    type: "ENTRY",
+    spotId: "darshan-area",
+    verified: false,
   },
 ];
 
+// Devotee-facing exit gates. Mirror of the backend `exit_points` seeds so the
+// temple map and the "focus" deep-link target match the Exit Points page.
+// `verified: false` marks an approximate position to be confirmed on site.
 export const exitPoints = [
   {
-    id: "exit-1",
-    name: "Main Exit",
+    id: "exit-main",
+    name: "Main Exit Gate",
     lat: 13.6826,
     lng: 79.3468,
     type: "EXIT",
+    spotId: "exit-area",
+    verified: true,
+  },
+  {
+    id: "exit-north",
+    name: "North Exit Gate",
+    lat: 13.6850,
+    lng: 79.3480,
+    type: "EXIT",
+    spotId: null,
+    verified: false,
+  },
+  {
+    id: "exit-south",
+    name: "South Exit Gate",
+    lat: 13.6826,
+    lng: 79.3463,
+    type: "EXIT",
+    spotId: null,
+    verified: false,
+  },
+  {
+    id: "exit-east",
+    name: "East Exit Gate",
+    lat: 13.6843,
+    lng: 79.3485,
+    type: "EXIT",
+    spotId: null,
+    verified: false,
+  },
+  {
+    id: "exit-west",
+    name: "West Exit Gate",
+    lat: 13.6841,
+    lng: 79.3456,
+    type: "EXIT",
+    spotId: null,
+    verified: false,
   },
 ];
 

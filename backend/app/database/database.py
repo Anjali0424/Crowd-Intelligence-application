@@ -46,6 +46,34 @@ def init_db() -> None:
     from app.database import models  # noqa: F401  (register models on Base)
 
     Base.metadata.create_all(bind=engine)
+    _add_missing_columns()
+
+
+def _add_missing_columns() -> None:
+    """Add columns that exist on the models but are missing from SQLite.
+
+    ``create_all`` never alters existing tables, so when a model gains a column
+    an existing database would break. This adds any missing nullable columns so
+    upgrades stay additive and non-destructive.
+    """
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+
+    with engine.begin() as conn:
+        for table in Base.metadata.sorted_tables:
+            if table.name not in existing_tables:
+                continue
+            present = {col["name"] for col in inspector.get_columns(table.name)}
+            for column in table.columns:
+                if column.name in present:
+                    continue
+                col_type = column.type.compile(dialect=engine.dialect)
+                conn.execute(
+                    text(f'ALTER TABLE "{table.name}" ADD COLUMN "{column.name}" {col_type}')
+                )
+
 
 
 def get_db():

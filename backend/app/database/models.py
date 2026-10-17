@@ -26,6 +26,10 @@ DATA_SOURCES = ("staff", "camera", "historical", "hybrid")
 # Spot observations can come from staff data entry or the camera/drone pipeline.
 SPOT_SOURCES = ("staff", "cctv", "drone", "other")
 
+# Operator-settable exit statuses. A missing/unknown status is represented as
+# "UNKNOWN" in the API payload and is never invented as OPEN.
+EXIT_STATUSES = ("OPEN", "BUSY", "CLOSED")
+
 
 def utcnow() -> datetime:
     return datetime.utcnow()
@@ -309,3 +313,198 @@ class CrowdPath(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+
+
+class BarricadeGateConfig(Base):
+    """Configuration for an AI-monitored temple barricade / queue gate."""
+
+    __tablename__ = "barricade_gates"
+
+    id = Column(String(64), primary_key=True)  # e.g. "CAM-01"
+    name = Column(String(120), nullable=False)
+    zone_id = Column(String(64), nullable=True)
+    zone_name = Column(String(120), nullable=True)
+    camera_id = Column(String(64), nullable=False)
+
+    # Normalized line coordinates [0.0 - 1.0] across video width/height
+    line_x1 = Column(Float, nullable=False, default=0.1)
+    line_y1 = Column(Float, nullable=False, default=0.5)
+    line_x2 = Column(Float, nullable=False, default=0.9)
+    line_y2 = Column(Float, nullable=False, default=0.5)
+
+    # Valid movement direction: "top_to_bottom", "bottom_to_top", "left_to_right", "right_to_left", "bidirectional"
+    direction_mode = Column(String(32), nullable=False, default="top_to_bottom")
+
+    # Safety thresholds
+    max_occupancy = Column(Integer, nullable=False, default=15)
+    wrong_way_enabled = Column(Boolean, nullable=False, default=True)
+    blocked_exit_enabled = Column(Boolean, nullable=False, default=True)
+    block_duration_sec = Column(Float, nullable=False, default=5.0)
+    cooldown_seconds = Column(Integer, nullable=False, default=60)
+
+    # Assigned guard ID
+    assigned_guard_id = Column(String(64), nullable=True)
+
+    created_at = Column(DateTime, nullable=False, default=utcnow)
+    updated_at = Column(DateTime, nullable=False, default=utcnow, onupdate=utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "zone_id": self.zone_id,
+            "zone_name": self.zone_name,
+            "camera_id": self.camera_id,
+            "line_x1": self.line_x1,
+            "line_y1": self.line_y1,
+            "line_x2": self.line_x2,
+            "line_y2": self.line_y2,
+            "direction_mode": self.direction_mode,
+            "max_occupancy": self.max_occupancy,
+            "wrong_way_enabled": bool(self.wrong_way_enabled),
+            "blocked_exit_enabled": bool(self.blocked_exit_enabled),
+            "block_duration_sec": self.block_duration_sec,
+            "cooldown_seconds": self.cooldown_seconds,
+            "assigned_guard_id": self.assigned_guard_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class SecurityGuard(Base):
+    """Guard / staff member assigned to temple barricades and gates."""
+
+    __tablename__ = "security_guards"
+
+    id = Column(String(64), primary_key=True)  # e.g. "STAFF-12"
+    name = Column(String(120), nullable=False)
+    role = Column(String(80), nullable=False, default="Crowd Controller")
+    assigned_zone = Column(String(120), nullable=True)
+    assigned_gate = Column(String(120), nullable=True)
+    phone = Column(String(32), nullable=True)
+    on_duty = Column(Boolean, nullable=False, default=True)
+    notification_channel = Column(String(32), nullable=False, default="in-app")
+    last_seen = Column(DateTime, nullable=False, default=utcnow)
+    created_at = Column(DateTime, nullable=False, default=utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "role": self.role,
+            "assigned_zone": self.assigned_zone,
+            "assigned_gate": self.assigned_gate,
+            "phone": self.phone,
+            "on_duty": bool(self.on_duty),
+            "notification_channel": self.notification_channel,
+            "last_seen": self.last_seen.isoformat() if self.last_seen else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class BarricadeSafetyEvent(Base):
+    """Actionable safety event detected at an AI-monitored barricade or gate."""
+
+    __tablename__ = "barricade_safety_events"
+
+    id = Column(String(64), primary_key=True)  # e.g. "EVT-BAR-20261016-123456"
+    camera_id = Column(String(64), nullable=False, index=True)
+    gate_name = Column(String(120), nullable=False)
+    zone_name = Column(String(120), nullable=True)
+
+    # Event types: "OVERCROWDING", "WRONG_WAY_MOVEMENT", "BLOCKED_EXIT", "CAMERA_OFFLINE"
+    event_type = Column(String(32), nullable=False, index=True)
+    severity = Column(String(16), nullable=False)  # "CRITICAL", "HIGH", "MEDIUM", "LOW"
+
+    title = Column(String(160), nullable=False)
+    reason = Column(Text, nullable=False)
+    recommended_action = Column(Text, nullable=False)
+    people_count = Column(Integer, nullable=True)
+
+    # Assigned guard details
+    assigned_guard_id = Column(String(64), nullable=True)
+    assigned_guard_name = Column(String(120), nullable=True)
+
+    # Status tracking
+    delivery_status = Column(String(24), nullable=False, default="DELIVERED")  # SENT, DELIVERED, FAILED
+    status = Column(String(24), nullable=False, default="PENDING")  # PENDING, ACKNOWLEDGED, RESOLVED
+
+    acknowledged_at = Column(DateTime, nullable=True)
+    acknowledged_by = Column(String(80), nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+    resolved_by = Column(String(80), nullable=True)
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, nullable=False, default=utcnow, index=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "camera_id": self.camera_id,
+            "gate_name": self.gate_name,
+            "zone_name": self.zone_name,
+            "event_type": self.event_type,
+            "severity": self.severity,
+            "title": self.title,
+            "reason": self.reason,
+            "recommended_action": self.recommended_action,
+            "people_count": self.people_count,
+            "assigned_guard_id": self.assigned_guard_id,
+            "assigned_guard_name": self.assigned_guard_name,
+            "delivery_status": self.delivery_status,
+            "status": self.status,
+            "acknowledged_at": self.acknowledged_at.isoformat() if self.acknowledged_at else None,
+            "acknowledged_by": self.acknowledged_by,
+            "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
+            "resolved_by": self.resolved_by,
+            "notes": self.notes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class ExitPoint(Base):
+    """A temple exit gate with an operator-managed open/busy/closed status.
+
+    ``status`` and ``closure_reason`` are set by staff/operators (never invented
+    by the API). ``spot_id`` optionally links the exit to a :class:`CrowdSpot`
+    so live crowd count/capacity/density can be shown alongside it. When no
+    status has been recorded the API reports ``UNKNOWN``.
+    """
+
+    __tablename__ = "exit_points"
+
+    id = Column(String(64), primary_key=True)  # stable slug, e.g. "exit-main"
+    name = Column(String(120), nullable=False)
+    lat = Column(Float, nullable=False)
+    lng = Column(Float, nullable=False)
+
+    status = Column(String(16), nullable=True)  # OPEN | BUSY | CLOSED | null
+    closure_reason = Column(Text, nullable=True)
+
+    spot_id = Column(String(64), ForeignKey("crowd_spots.id"), nullable=True)
+    capacity = Column(Integer, nullable=True)  # verified max capacity, if known
+    wait_minutes = Column(Integer, nullable=True)  # operator-provided, if known
+
+    verified = Column(Boolean, nullable=False, default=False)
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, nullable=False, default=utcnow)
+    updated_at = Column(DateTime, nullable=False, default=utcnow, onupdate=utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "lat": self.lat,
+            "lng": self.lng,
+            "status": self.status,
+            "closure_reason": self.closure_reason,
+            "spot_id": self.spot_id,
+            "capacity": self.capacity,
+            "wait_minutes": self.wait_minutes,
+            "verified": bool(self.verified),
+            "notes": self.notes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
