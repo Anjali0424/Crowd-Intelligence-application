@@ -866,3 +866,77 @@
     animation: none;
   }
 }
+.dh-tirupati-ai-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 16px;
+}
+
+.dh-tirupati-ai-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 340px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: #14532d;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 20px;
+  transition: transform 180ms ease;
+}
+
+.dh-tirupati-ai-button:hover {
+  transform: translateY(-3px);
+}
+
+.dh-tirupati-ai-button:focus-visible {
+  outline: 3px solid #218c4a;
+  outline-offset: 5px;
+}
+
+.dh-tirupati-ai-robot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #2fa45d, #16753b);
+  box-shadow: 0 12px 25px rgba(33, 140, 74, 0.25);
+  font-size: 58px;
+  line-height: 1;
+}
+
+.dh-tirupati-ai-title {
+  display: block;
+  margin-top: 12px;
+  color: #14532d;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.dh-tirupati-ai-subtitle {
+  display: block;
+  margin-top: 5px;
+  color: #537568;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .dh-tirupati-ai-section {
+    padding: 16px 12px;
+  }
+
+  .dh-tirupati-ai-robot {
+    width: 115px;
+    height: 115px;
+    font-size: 52px;
+  }
+}

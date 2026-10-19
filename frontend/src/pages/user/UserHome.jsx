@@ -455,41 +455,21 @@ function UserHome() {
         </button>
       </section>
 
-      <section className="dh-actions" aria-label={t("home.quickActions")}>
-        <div className="dh-action">
-          <button
-            type="button"
-            className="dh-action-btn"
-            onClick={handleScanClick}
-            aria-label={t("home.scanTitle")}
-          >
-            <span className="dh-action-icon" aria-hidden="true">
-              📷
-            </span>
-          </button>
-          <span className="dh-action-label">{t("home.scanTitle")}</span>
-          <span className="dh-action-hint">{t("home.scanHint")}</span>
-        </div>
-
-        <div className="dh-action">
-          <button
-            type="button"
-            className={
-              micState === "listening"
-                ? "dh-action-btn listening"
-                : "dh-action-btn"
-            }
-            onClick={handleMicClick}
-            aria-label={t("home.voiceActionTitle")}
-            aria-pressed={micState === "listening"}
-          >
-            <span className="dh-action-icon" aria-hidden="true">
-              {micState === "listening" ? "⏹" : "🎤"}
-            </span>
-          </button>
-          <span className="dh-action-label">{voiceActionLabel}</span>
-          <span className="dh-action-hint">{voiceActionHint}</span>
-        </div>
+      <section className="dh-actions dh-tirupati-ai-section" aria-label="Tirupati AI assistant">
+        <button
+          type="button"
+          className="dh-tirupati-ai-button"
+          onClick={scrollToChat}
+          aria-label="Ask Tirupati AI"
+        >
+          <span className="dh-tirupati-ai-robot" aria-hidden="true">
+            🤖
+          </span>
+          <span className="dh-tirupati-ai-title">Ask Tirupati AI</span>
+          <span className="dh-tirupati-ai-subtitle">
+            Your smart guide for a safer and smoother darshan.
+          </span>
+        </button>
       </section>
 
       {scanNotice && (
