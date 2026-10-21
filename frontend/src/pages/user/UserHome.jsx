@@ -71,6 +71,9 @@ function UserHome() {
       now.getMinutes()
     ).padStart(2, "0")}`;
   });
+  const [selectedTimePrediction, setSelectedTimePrediction] = useState(null);
+  const [selectedTimePredictionLoading, setSelectedTimePredictionLoading] = useState(false);
+  const [selectedTimePredictionError, setSelectedTimePredictionError] = useState("");
   const [speaking, setSpeaking] = useState(false);
   const [speakError, setSpeakError] = useState(false);
 
@@ -237,6 +240,76 @@ function UserHome() {
     } catch (err) {
       setSpeaking(false);
       setSpeakError(true);
+    }
+  };
+
+  const handleSelectedTimePrediction = async () => {
+    if (!selectedDarshanTime) {
+      setSelectedTimePredictionError("Please select an arrival time.");
+      return;
+    }
+
+    setSelectedTimePredictionLoading(true);
+    setSelectedTimePredictionError("");
+    setSelectedTimePrediction(null);
+
+    try {
+      // Reuse the existing backend prediction endpoint. This endpoint currently
+      // provides the latest estimate; it does not necessarily forecast future
+      // crowd conditions for the selected arrival time.
+      const res = await getDarshanCurrent();
+      const prediction = res?.prediction;
+
+      if (
+        !prediction?.available ||
+        prediction.total_minutes === null ||
+        prediction.total_minutes === undefined ||
+        !Number.isFinite(Number(prediction.total_minutes))
+      ) {
+        setSelectedTimePredictionError(
+          "Prediction is unavailable because current crowd data or a valid model estimate is missing."
+        );
+        return;
+      }
+
+      const [hours, minutes] = selectedDarshanTime.split(":").map(Number);
+      const now = new Date();
+      const arrival = new Date(now);
+      arrival.setHours(hours, minutes, 0, 0);
+
+      // Treat a selected time earlier than the current clock time as tomorrow.
+      if (arrival.getTime() < now.getTime()) {
+        arrival.setDate(arrival.getDate() + 1);
+      }
+
+      const totalMinutes = Math.max(0, Math.round(Number(prediction.total_minutes)));
+      const completion = new Date(arrival.getTime() + totalMinutes * 60 * 1000);
+      const waitMinutes =
+        prediction.wait_minutes === null || prediction.wait_minutes === undefined
+          ? null
+          : Math.max(0, Math.round(Number(prediction.wait_minutes)));
+
+      setSelectedTimePrediction({
+        arrivalTime: arrival.toLocaleTimeString([], {
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+        totalMinutes,
+        waitMinutes,
+        completionTime: completion.toLocaleTimeString([], {
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+        crowdLevel: prediction.crowd_level || null,
+        source: prediction.prediction_source || "latest_available_estimate",
+      });
+      setShowDarshanTimePicker(false);
+    } catch (err) {
+      setSelectedTimePredictionError(
+        "Unable to get a prediction right now. Please try again."
+      );
+    } finally {
+      setSelectedTimePredictionLoading(false);
     }
   };
 
@@ -594,7 +667,10 @@ function UserHome() {
               <button
                 type="button"
                 className="dh-time-btn"
-                onClick={() => setShowDarshanTimePicker((open) => !open)}
+                onClick={() => {
+                  setShowDarshanTimePicker((open) => !open);
+                  setSelectedTimePredictionError("");
+                }}
               >
                 💬 {t("home.time.ask")}
               </button>
@@ -649,7 +725,10 @@ function UserHome() {
               <button
                 type="button"
                 className="dh-time-btn"
-                onClick={() => setShowDarshanTimePicker((open) => !open)}
+                onClick={() => {
+                  setShowDarshanTimePicker((open) => !open);
+                  setSelectedTimePredictionError("");
+                }}
               >
                 💬 {t("home.time.ask")}
               </button>
@@ -713,12 +792,69 @@ function UserHome() {
               type="button"
               className="dh-time-btn"
               style={{ marginTop: "12px", width: "100%" }}
-              onClick={() => setShowDarshanTimePicker(false)}
+              onClick={handleSelectedTimePrediction}
+              disabled={selectedTimePredictionLoading || !selectedDarshanTime}
             >
-              Done
+              {selectedTimePredictionLoading ? "Predicting..." : "Done"}
             </button>
+            {selectedTimePredictionError ? (
+              <p className="dh-darshan-hint" role="alert">
+                {selectedTimePredictionError}
+              </p>
+            ) : null}
           </div>
         )}
+
+        {selectedTimePrediction ? (
+          <div className="dh-darshan-time-picker" style={{
+            marginTop: "14px",
+            padding: "16px",
+            borderRadius: "14px",
+            border: "1px solid #d4eadb",
+            background: "#f4fbf6",
+          }} role="status">
+            <h4 style={{ margin: "0 0 10px", color: "#14532d" }}>
+              🛕 Your Darshan Time Estimate
+            </h4>
+            <p style={{ margin: "6px 0" }}>
+              <strong>Planned arrival:</strong> {selectedTimePrediction.arrivalTime}
+            </p>
+            {selectedTimePrediction.waitMinutes !== null ? (
+              <p style={{ margin: "6px 0" }}>
+                <strong>Estimated queue wait:</strong>{" "}
+                {formatDuration(t, selectedTimePrediction.waitMinutes)}
+              </p>
+            ) : null}
+            <p style={{ margin: "6px 0" }}>
+              <strong>Total time required:</strong>{" "}
+              {formatDuration(t, selectedTimePrediction.totalMinutes)}
+            </p>
+            <p style={{ margin: "6px 0" }}>
+              <strong>Expected completion:</strong>{" "}
+              {selectedTimePrediction.completionTime}
+            </p>
+            {selectedTimePrediction.crowdLevel ? (
+              <p style={{ margin: "6px 0" }}>
+                <strong>Crowd level:</strong>{" "}
+                {crowdText(t, selectedTimePrediction.crowdLevel)}
+              </p>
+            ) : null}
+            <p style={{ margin: "10px 0 0", color: "#537568", fontSize: "12px" }}>
+              Estimate uses the latest available backend prediction; it may not forecast crowd changes at the selected future time.
+            </p>
+            <button
+              type="button"
+              className="dh-time-btn"
+              style={{ marginTop: "12px", width: "100%" }}
+              onClick={() => {
+                setSelectedTimePrediction(null);
+                setShowDarshanTimePicker(true);
+              }}
+            >
+              Change time
+            </button>
+          </div>
+        ) : null}
       </section>
 
       <section
