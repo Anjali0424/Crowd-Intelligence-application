@@ -64,6 +64,13 @@ function UserHome() {
   const [darshan, setDarshan] = useState(null);
   const [darshanLoading, setDarshanLoading] = useState(true);
   const [darshanStale, setDarshanStale] = useState(false);
+  const [showDarshanTimePicker, setShowDarshanTimePicker] = useState(false);
+  const [selectedDarshanTime, setSelectedDarshanTime] = useState(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, "0")}:${String(
+      now.getMinutes()
+    ).padStart(2, "0")}`;
+  });
   const [speaking, setSpeaking] = useState(false);
   const [speakError, setSpeakError] = useState(false);
 
@@ -587,7 +594,7 @@ function UserHome() {
               <button
                 type="button"
                 className="dh-time-btn"
-                onClick={scrollToChat}
+                onClick={() => setShowDarshanTimePicker((open) => !open)}
               >
                 💬 {t("home.time.ask")}
               </button>
@@ -642,12 +649,75 @@ function UserHome() {
               <button
                 type="button"
                 className="dh-time-btn"
-                onClick={scrollToChat}
+                onClick={() => setShowDarshanTimePicker((open) => !open)}
               >
                 💬 {t("home.time.ask")}
               </button>
             </div>
           </>
+        )}
+
+        {showDarshanTimePicker && (
+          <div
+            className="dh-darshan-time-picker"
+            style={{
+              marginTop: "14px",
+              padding: "16px",
+              borderRadius: "14px",
+              border: "1px solid #d4eadb",
+              background: "#f4fbf6",
+            }}
+          >
+            <label
+              htmlFor="planned-darshan-time"
+              style={{
+                display: "block",
+                marginBottom: "10px",
+                color: "#14532d",
+                fontWeight: 700,
+              }}
+            >
+              Select your planned arrival time
+            </label>
+            <input
+              id="planned-darshan-time"
+              type="time"
+              value={selectedDarshanTime}
+              onChange={(event) => setSelectedDarshanTime(event.target.value)}
+              style={{
+                display: "block",
+                width: "100%",
+                minHeight: "46px",
+                boxSizing: "border-box",
+                padding: "10px 12px",
+                border: "1px solid #b8dcc5",
+                borderRadius: "10px",
+                background: "#ffffff",
+                color: "#14532d",
+                fontSize: "16px",
+              }}
+            />
+            <p
+              style={{
+                margin: "10px 0 0",
+                color: "#537568",
+                fontSize: "13px",
+                lineHeight: 1.5,
+              }}
+            >
+              Selected time: {selectedDarshanTime
+                ? formatClock(`2000-01-01T${selectedDarshanTime}:00`)
+                : "Choose a time"}
+            </p>
+            <button
+              type="button"
+              className="dh-time-btn"
+              style={{ marginTop: "12px", width: "100%" }}
+              onClick={() => setShowDarshanTimePicker(false)}
+            >
+              Done
+            </button>
+          </div>
         )}
       </section>
 
