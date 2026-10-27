@@ -15,6 +15,7 @@ import UserLayout from "../layouts/UserLayout";
 import AdminLayout from "../layouts/AdminLayout";
 
 import UserHome from "../pages/user/UserHome";
+import TirupatiAI from "../pages/user/TirupatiAI";
 import CrowdAreas from "../pages/user/CrowdAreas";
 import Navigation from "../pages/user/Navigation";
 import LiveMap from "../pages/user/LiveMap";
@@ -68,6 +69,7 @@ function AppRoutes() {
         {/* Devotee / User App */}
         <Route path="/user" element={<UserLayout />}>
           <Route index element={<UserHome />} />
+          <Route path="ai-chat" element={<TirupatiAI />} />
           <Route path="crowd" element={<CrowdAreas />} />
           <Route path="navigation" element={<Navigation />} />
           <Route path="map" element={<LiveMap />} />
