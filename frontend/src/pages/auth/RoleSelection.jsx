@@ -1,8 +1,12 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+
 import frontImage from "../../assets/images/temple.jpg";
+import LanguageSelector from "../../components/common/LanguageSelector";
 
 function RoleSelection() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleDevotee = () => {
     navigate("/user");
@@ -20,20 +24,16 @@ function RoleSelection() {
         <div className="temple-image-container">
           <img
             src={frontImage}
-            alt="Temple Civic Intelligence"
+            alt={t("role.imageAlt")}
             className="temple-image"
           />
 
           <div className="image-overlay"></div>
 
           <div className="temple-title">
-            <h1>Crowd Intelligence System</h1>
+            <h1>{t("role.tagline")}</h1>
 
-            <p>
-              Smart Guidance for a Safer
-              <br />
-              and Smoother Darshan
-            </p>
+            <p>{t("role.tagline2")}</p>
           </div>
         </div>
 
@@ -50,8 +50,8 @@ function RoleSelection() {
             </div>
 
             <div className="role-text">
-              <h3>I am a Devotee</h3>
-              <span>Temple Visitor</span>
+              <h3>{t("role.devotee")}</h3>
+              <span>{t("role.devoteeSub")}</span>
             </div>
 
             <div className="arrow">
@@ -69,8 +69,8 @@ function RoleSelection() {
             </div>
 
             <div className="role-text">
-              <h3>Temple Staff / Admin</h3>
-              <span>Authorized Access</span>
+              <h3>{t("role.staff")}</h3>
+              <span>{t("role.staffSub")}</span>
             </div>
 
             <div className="arrow">
@@ -82,7 +82,8 @@ function RoleSelection() {
 
         {/* Footer */}
         <div className="role-footer">
-          <p>🛡️ Secure • Smart • Crowd-Aware</p>
+          <p>{t("role.footer")}</p>
+          <LanguageSelector />
         </div>
 
       </div>

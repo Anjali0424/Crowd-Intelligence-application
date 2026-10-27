@@ -50,7 +50,7 @@ ACCURACY AND SAFETY:
 - Keep answers practical and mobile-friendly.
 """
 
-SUPPORTED_LANGS = {"en", "hi", "mr", "te"}
+SUPPORTED_LANGS = {"en", "hi", "mr", "te", "ta", "kn"}
 
 # Coordinates mirror the project's own frontend data (mockTempleMapData.js).
 FACILITIES: List[Dict[str, Any]] = [

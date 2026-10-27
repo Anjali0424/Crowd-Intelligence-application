@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import templeImage from "../../assets/images/temple.jpg";
 import { getCameraCounts } from "../../services/crowdService";
 import { translateData } from "../../i18n";
-import { getSpeechLang } from "../../services/chatbotService";
+import { APP_LANGUAGES, getSpeechLang } from "../../services/chatbotService";
 import {
   getDarshanCurrent,
   formatClock,
@@ -166,9 +166,7 @@ function UserHome() {
   }, []);
 
   const appLang = (i18n.language || "en").slice(0, 2);
-  const languageCode = ["en", "hi", "mr", "te"].includes(appLang)
-    ? appLang
-    : "en";
+  const languageCode = APP_LANGUAGES.includes(appLang) ? appLang : "en";
 
   useEffect(() => {
     return () => {
@@ -252,11 +250,11 @@ function UserHome() {
 
   const handleSelectedTimePrediction = async () => {
     if (!selectedDarshanTime) {
-      setSelectedTimePredictionError("Please select an arrival time.");
+      setSelectedTimePredictionError(t("home.plan.needTime"));
       return;
     }
     if (!selectedDarshanType) {
-      setSelectedTimePredictionError("Please select a darshan type.");
+      setSelectedTimePredictionError(t("home.plan.needType"));
       return;
     }
 
@@ -271,10 +269,7 @@ function UserHome() {
       });
 
       if (!res?.available) {
-        setSelectedTimePredictionError(
-          res?.message ||
-            "A prediction is not available for that arrival. Please choose another time."
-        );
+        setSelectedTimePredictionError(t("home.plan.unavailable"));
         return;
       }
 
@@ -287,12 +282,12 @@ function UserHome() {
         durationMinutes: res.darshan_duration_minutes,
         completionTime: formatHm(res.expected_completion),
         crossesMidnight: Boolean(res.crosses_midnight),
-        warning: res.demo_warning,
+        warning: res.demo_warning ? t("home.time.demoWarning") : "",
       });
       setShowDarshanTimePicker(false);
     } catch (err) {
       setSelectedTimePredictionError(
-        err?.message || "Unable to get a prediction right now. Please try again."
+        err?.message || t("home.plan.failed")
       );
     } finally {
       setSelectedTimePredictionLoading(false);
@@ -317,15 +312,15 @@ function UserHome() {
     },
     { id: "crowd", icon: "👥", name: t("home.svcCrowd"), to: "/user/crowd" },
     { id: "map", icon: "🗺️", name: t("home.svcMap"), to: "/user/map" },
+    { id: "entries", icon: "🚪", name: t("home.svcEntry"), to: "/user/entries" },
+    { id: "exits", icon: "🚪", name: t("home.svcExit"), to: "/user/exits" },
+    { id: "route", icon: "🛣️", name: t("home.svcRoute"), to: "/user/route" },
     {
       id: "navigation",
       icon: "🧭",
       name: t("home.svcNavigate"),
       to: "/user/navigation",
     },
-    { id: "route", icon: "🛣️", name: t("home.svcRoute"), to: "/user/route" },
-    { id: "entries", icon: "🚪", name: t("home.svcEntry"), to: "/user/entries" },
-    { id: "exits", icon: "🚪", name: t("home.svcExit"), to: "/user/exits" },
     { id: "alerts", icon: "🚨", name: t("home.svcAlerts"), to: "/user/alerts" },
     {
       id: "profile",
@@ -381,20 +376,18 @@ function UserHome() {
         </button>
       </section>
 
-      <section className="dh-actions dh-tirupati-ai-section" aria-label="Tirupati AI assistant">
+      <section className="dh-actions dh-tirupati-ai-section" aria-label={t("home.robotLabel")}>
         <button
           type="button"
           className="dh-tirupati-ai-button"
           onClick={() => navigate("/user/ai-chat")}
-          aria-label="Ask Tirupati AI"
+          aria-label={t("home.robotLabel")}
         >
           <span className="dh-tirupati-ai-robot" aria-hidden="true">
             🤖
           </span>
-          <span className="dh-tirupati-ai-title">Ask Tirupati AI</span>
-          <span className="dh-tirupati-ai-subtitle">
-            Your smart guide for a safer and smoother darshan.
-          </span>
+          <span className="dh-tirupati-ai-title">{t("home.robotLabel")}</span>
+          <span className="dh-tirupati-ai-subtitle">{t("home.robotSub")}</span>
         </button>
       </section>
 
@@ -592,7 +585,7 @@ function UserHome() {
                 fontWeight: 700,
               }}
             >
-              Darshan type
+              {t("home.plan.type")}
             </label>
             <select
               id="planned-darshan-type"
@@ -627,7 +620,7 @@ function UserHome() {
                 fontWeight: 700,
               }}
             >
-              Select your planned arrival time
+              {t("home.plan.time")}
             </label>
             <input
               id="planned-darshan-time"
@@ -655,9 +648,9 @@ function UserHome() {
                 lineHeight: 1.5,
               }}
             >
-              Selected time: {selectedDarshanTime
+              {t("home.plan.selected")}: {selectedDarshanTime
                 ? formatClock(`2000-01-01T${selectedDarshanTime}:00`)
-                : "Choose a time"}
+                : t("home.plan.choose")}
             </p>
             <button
               type="button"
@@ -667,14 +660,14 @@ function UserHome() {
               disabled={selectedTimePredictionLoading || !selectedDarshanTime}
             >
               {selectedTimePredictionLoading
-                ? "Predicting darshan time…"
+                ? t("home.plan.predicting")
                 : selectedTimePredictionError
-                  ? "Retry"
-                  : "Done"}
+                  ? t("home.plan.retry")
+                  : t("home.plan.done")}
             </button>
             {selectedTimePredictionLoading ? (
               <p className="dh-darshan-state" role="status">
-                Predicting darshan time…
+                {t("home.plan.predicting")}
               </p>
             ) : null}
             {selectedTimePredictionError ? (
@@ -694,40 +687,40 @@ function UserHome() {
             background: "#f4fbf6",
           }} role="status">
             <h4 style={{ margin: "0 0 10px", color: "#14532d" }}>
-              🛕 Your Darshan Time Estimate
+              🛕 {t("home.plan.title")}
             </h4>
             <p style={{ margin: "6px 0" }}>
-              <strong>Planned arrival:</strong>{" "}
+              <strong>{t("home.plan.arrival")}:</strong>{" "}
               {selectedTimePrediction.arrivalDate
                 ? `${selectedTimePrediction.arrivalTime}, ${selectedTimePrediction.arrivalDate}`
                 : selectedTimePrediction.arrivalTime}
             </p>
             {selectedTimePrediction.darshanType ? (
               <p style={{ margin: "6px 0" }}>
-                <strong>Darshan type:</strong> {selectedTimePrediction.darshanType}
+                <strong>{t("home.plan.darshanType")}:</strong> {selectedTimePrediction.darshanType}
               </p>
             ) : null}
             {selectedTimePrediction.waitMinutes !== null ? (
               <p style={{ margin: "6px 0" }}>
-                <strong>Estimated queue wait:</strong>{" "}
+                <strong>{t("home.plan.wait")}:</strong>{" "}
                 {formatDuration(t, selectedTimePrediction.waitMinutes)}
               </p>
             ) : null}
             {selectedTimePrediction.durationMinutes !== null &&
             selectedTimePrediction.durationMinutes !== undefined ? (
               <p style={{ margin: "6px 0" }}>
-                <strong>Darshan duration:</strong>{" "}
+                <strong>{t("home.plan.duration")}:</strong>{" "}
                 {formatDuration(t, selectedTimePrediction.durationMinutes)}
               </p>
             ) : null}
             <p style={{ margin: "6px 0" }}>
-              <strong>Total time required:</strong>{" "}
+              <strong>{t("home.plan.total")}:</strong>{" "}
               {formatDuration(t, selectedTimePrediction.totalMinutes)}
             </p>
             <p style={{ margin: "6px 0" }}>
-              <strong>Expected completion:</strong>{" "}
+              <strong>{t("home.plan.finish")}:</strong>{" "}
               {selectedTimePrediction.completionTime}
-              {selectedTimePrediction.crossesMidnight ? " (next day)" : ""}
+              {selectedTimePrediction.crossesMidnight ? ` (${t("home.plan.nextDay")})` : ""}
             </p>
             {selectedTimePrediction.warning ? (
               <p style={{ margin: "10px 0 0", color: "#537568", fontSize: "12px" }}>
@@ -743,7 +736,7 @@ function UserHome() {
                 setShowDarshanTimePicker(true);
               }}
             >
-              Change time
+              {t("home.plan.change")}
             </button>
           </div>
         ) : null}

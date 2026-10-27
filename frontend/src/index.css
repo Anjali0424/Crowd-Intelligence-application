@@ -450,9 +450,13 @@ button {
 
 .language-selector {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
 
   gap: 3px;
+
+  max-width: 210px;
 
   padding: 3px;
 
@@ -512,16 +516,14 @@ button {
     font-size: 15px;
   }
 
+  .language-selector {
+    max-width: 168px;
+  }
+
   .lang-option {
-    padding: 6px;
-  }
-
-  .lang-option .lang-text {
-    display: none;
-  }
-
-  .lang-option.selected .lang-text {
-    display: inline;
+    min-height: 36px;
+    padding: 6px 7px;
+    font-size: 11px;
   }
 }
 

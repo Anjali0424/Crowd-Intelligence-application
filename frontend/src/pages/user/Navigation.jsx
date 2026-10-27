@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   MapContainer,
   Marker,
@@ -61,16 +62,16 @@ function isValidCoordinate(value) {
   );
 }
 
-function locationErrorMessage(error) {
+function locationErrorMessage(error, t) {
   switch (error && error.code) {
     case 1:
-      return "Location permission was denied. Allow location access for this site in your browser, then try again.";
+      return t("navigation.locationDenied");
     case 2:
-      return "Your location is unavailable right now. Make sure GPS / location services are turned on, then try again.";
+      return t("navigation.locationUnavailable");
     case 3:
-      return "Getting your location took too long. Please try again.";
+      return t("navigation.locationTimeout");
     default:
-      return (error && error.message) || "We could not get your location.";
+      return t("navigation.locationError");
   }
 }
 
@@ -103,6 +104,7 @@ function MapController({ onReady, onUserDrag, position, follow, route }) {
 }
 
 function Navigation() {
+  const { t } = useTranslation();
   const [position, setPosition] = useState(null);
   const [accuracy, setAccuracy] = useState(null);
   const [status, setStatus] = useState("locating");
@@ -165,9 +167,7 @@ function Navigation() {
   const startWatching = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setStatus("error");
-      setErrorMessage(
-        "Location is not supported by this browser. Please try a different browser."
-      );
+      setErrorMessage(t("navigation.locationError"));
       return;
     }
 
@@ -184,11 +184,11 @@ function Navigation() {
       },
       (error) => {
         setStatus("error");
-        setErrorMessage(locationErrorMessage(error));
+        setErrorMessage(locationErrorMessage(error, t));
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
     );
-  }, [stopWatching]);
+  }, [stopWatching, t]);
 
   useEffect(() => {
     startWatching();
@@ -229,13 +229,13 @@ function Navigation() {
   const handleShowRoute = useCallback(async () => {
     if (destinations.length === 0) {
       setRoute([]);
-      setRouteMessage("Destination data is unavailable, so a route cannot be drawn.");
+      setRouteMessage(t("navigation.destDataUnavailable"));
       return;
     }
 
     if (!selectedDestination) {
       setRoute([]);
-      setRouteMessage("Please choose a destination first.");
+      setRouteMessage(t("navigation.chooseDestination"));
       return;
     }
 
@@ -275,24 +275,26 @@ function Navigation() {
         : null;
       const summary =
         distanceKm && minutes
-          ? ` (${distanceKm} km, about ${minutes} min on foot)`
+          ? t("navigation.routeSummary", { distance: distanceKm, minutes })
           : "";
 
       const startNote = usingCurrentLocation
         ? ""
-        : " Starting from the temple centre because your location is unavailable.";
+        : t("navigation.startFromCentre");
       setRouteMessage(
-        `Walking route to ${selectedDestination.name}${summary}.${startNote}`
+        t("navigation.routeTo", {
+          name: selectedDestination.name,
+          summary,
+          startNote,
+        })
       );
     } catch {
       setRoute([]);
-      setRouteMessage(
-        "Could not calculate a walking route right now. Please try again later."
-      );
+      setRouteMessage(t("navigation.routeError"));
     } finally {
       setIsRouting(false);
     }
-  }, [destinations, selectedDestination, position]);
+  }, [destinations, selectedDestination, position, t]);
 
   return (
     <div className="nav-page">
@@ -326,8 +328,8 @@ function Navigation() {
                 <strong>{place.name || place.id}</strong>
                 <br />
                 <small>
-                  {place.category || "Destination"}
-                  {place.verified === false ? " · approx. location" : ""}
+                  {place.category || t("navigation.destination")}
+                  {place.verified === false ? ` · ${t("navigation.approx")}` : ""}
                 </small>
               </Popup>
             </Marker>
@@ -337,10 +339,10 @@ function Navigation() {
             <Marker
               position={[position.lat, position.lng]}
               icon={userIcon}
-              title="You are here"
+              title={t("navigation.youAreHere")}
             >
               <Popup>
-                <strong>You are here</strong>
+                <strong>{t("navigation.youAreHere")}</strong>
                 {accuracy ? (
                   <>
                     <br />
@@ -371,15 +373,15 @@ function Navigation() {
           type="button"
           className="nav-locate-btn"
           onClick={handleLocate}
-          title="Recenter on my location"
+          title={t("navigation.myLocation")}
+          aria-label={t("navigation.myLocation")}
         >
-          <span aria-hidden="true">📍</span> My Location
+          <span aria-hidden="true">📍</span> {t("navigation.myLocation")}
         </button>
 
         {status === "locating" && (
           <div className="nav-pill" role="status">
-            <span className="nav-spinner" aria-hidden="true" /> Getting your
-            location…
+            <span className="nav-spinner" aria-hidden="true" /> {t("navigation.locating")}
           </div>
         )}
 
@@ -401,8 +403,9 @@ function Navigation() {
 
       {status === "ready" && (
         <p className="nav-meta" role="status">
-          {accuracy ? `Accurate to about ${Math.round(accuracy)} m · ` : ""}
-          Live location — updating as you move
+          {accuracy
+            ? t("navigation.liveMeta", { meters: Math.round(accuracy) })
+            : t("navigation.liveMetaNoAccuracy")}
         </p>
       )}
 
@@ -420,24 +423,23 @@ function Navigation() {
       >
         {destinations.length === 0 ? (
           <p role="alert" style={{ margin: 0, fontSize: "12.5px", color: "#64816D" }}>
-            Destination data is unavailable right now, so walking routes cannot
-            be shown.
+            {t("navigation.destUnavailable")}
           </p>
         ) : (
           <>
-            <label htmlFor="temple-destination">Destination</label>
+            <label htmlFor="temple-destination">{t("navigation.destination")}</label>
             <select
               id="temple-destination"
               value={destinationId}
               onChange={handleDestinationChange}
             >
-              <option value="">Select a destination…</option>
+              <option value="">{t("navigation.selectDestination")}</option>
               {groupedDestinations.map(([category, places]) => (
                 <optgroup key={category} label={category}>
                   {places.map((place) => (
                     <option key={place.id} value={place.id}>
                       {place.name || place.label || place.id}
-                      {place.verified === false ? " (approx.)" : ""}
+                      {place.verified === false ? ` ${t("navigation.approx")}` : ""}
                     </option>
                   ))}
                 </optgroup>
@@ -449,7 +451,7 @@ function Navigation() {
               onClick={handleShowRoute}
               disabled={isRouting || !selectedDestination}
             >
-              {isRouting ? "Finding route…" : "Show Walking Route"}
+              {isRouting ? t("navigation.findingRoute") : t("navigation.showRoute")}
             </button>
             {routeMessage && <p role="status">{routeMessage}</p>}
           </>

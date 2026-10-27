@@ -1,5 +1,6 @@
 import { Outlet, useNavigate } from "react-router-dom";
 
+import LanguageSelector from "../components/common/LanguageSelector";
 import AdminNav from "../components/admin/AdminNav";
 import { mockAdminData } from "../data/mockAdminData";
 
@@ -20,13 +21,13 @@ function AdminLayout() {
             </div>
 
             <div className="admin-header-actions">
+              <LanguageSelector />
               <button
                 className="admin-header-btn"
                 aria-label="Notifications"
                 onClick={() => navigate("/admin/alerts")}
               >
                 🔔
-                <span className="bell-dot"></span>
               </button>
 
               <button

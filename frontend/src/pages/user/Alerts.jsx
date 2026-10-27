@@ -1,9 +1,13 @@
+import { useTranslation } from "react-i18next";
+
 function Alerts() {
+  const { t } = useTranslation();
+
   return (
     <div className="page-placeholder">
-      <span className="placeholder-icon">🚨</span>
-      <h2>Safety Alerts</h2>
-      <p>Important crowd and safety updates will appear here.</p>
+      <span className="placeholder-icon" aria-hidden="true">🚨</span>
+      <h2>{t("alerts.title")}</h2>
+      <p>{t("alerts.empty")}</p>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { getCrowdMap, formatClock, sourceLabel } from "../../services/crowdMapService";
 import TempleMap from "../../components/user/TempleMap";
@@ -7,16 +8,16 @@ import { getCrowdCardColors, getCrowdLabel } from "../../utils/crowdLevel";
 const POLL_MS = 5000;
 
 function SpotHeatmap({ spots }) {
+  const { t } = useTranslation();
+
   return (
     <section className="crowd-heatmap">
-      <h2>🗺️ Crowd Heatmap</h2>
-      <p className="heatmap-subtitle">See which temple areas are crowded</p>
+      <h2>🗺️ {t("crowd.heatmapTitle")}</h2>
+      <p className="heatmap-subtitle">{t("crowd.heatmapSubtitle")}</p>
 
       <div className="heatmap-grid">
         {spots.length === 0 && (
-          <p className="heatmap-empty">
-            No crowd information available right now. Please check back shortly.
-          </p>
+          <p className="heatmap-empty">{t("crowd.empty")}</p>
         )}
         {spots.map((spot) => {
           const level = spot.has_data ? spot.level : "NO_DATA";
@@ -29,28 +30,28 @@ function SpotHeatmap({ spots }) {
               {spot.has_data ? (
                 <>
                   <span className="heatmap-count">
-                    {spot.people_count} people
+                    {t("crowd.people", { count: spot.people_count })}
                   </span>
                   <span className="heatmap-meta">
-                    {getCrowdLabel(level)}
+                    {t(`entries.levels.${level}`, { defaultValue: getCrowdLabel(level) })}
                     {spot.density_percent != null &&
-                      ` · ${spot.density_percent}% full`}
+                      ` · ${t("crowd.percentFull", { density: spot.density_percent })}`}
                   </span>
                   <span className="heatmap-foot">
-                    Updated {formatClock(spot.observed_at)} ·{" "}
+                    {t("crowd.updated", { time: formatClock(spot.observed_at) })} ·{" "}
                     {sourceLabel(spot.source)}
                   </span>
                 </>
               ) : spot.stale ? (
                 <>
-                  <span className="heatmap-count">{spot.people_count} people</span>
-                  <span className="heatmap-meta">Data may be old</span>
+                  <span className="heatmap-count">{t("crowd.people", { count: spot.people_count })}</span>
+                  <span className="heatmap-meta">{t("crowd.dataMayBeOld")}</span>
                   <span className="heatmap-foot">
-                    Updated {formatClock(spot.observed_at)}
+                    {t("crowd.updated", { time: formatClock(spot.observed_at) })}
                   </span>
                 </>
               ) : (
-                <span className="heatmap-meta">No crowd data</span>
+                <span className="heatmap-meta">{t("crowd.noData")}</span>
               )}
             </div>
           );
@@ -61,8 +62,9 @@ function SpotHeatmap({ spots }) {
 }
 
 function CrowdAreas() {
+  const { t } = useTranslation();
   const [mapData, setMapData] = useState(null);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(false);
   const [showFacilities, setShowFacilities] = useState(false);
   const [showRoute, setShowRoute] = useState(false);
   const [showUser, setShowUser] = useState(false);
@@ -76,9 +78,9 @@ function CrowdAreas() {
         const res = await getCrowdMap();
         if (!mounted) return;
         setMapData(res);
-        setError(null);
+        setError(false);
       } catch (err) {
-        if (mounted) setError("Could not load crowd information.");
+        if (mounted) setError(true);
       }
     }
 
@@ -97,12 +99,12 @@ function CrowdAreas() {
 
   return (
     <div className="crowd-areas">
-      {error && <div className="crowd-error">{error}</div>}
+      {error && <div className="crowd-error" role="alert">{t("crowd.error")}</div>}
 
       <div
         className="crowd-map-controls"
         role="group"
-        aria-label="Map controls"
+        aria-label={t("crowd.controls")}
       >
         <button
           type="button"
@@ -110,7 +112,7 @@ function CrowdAreas() {
           aria-pressed={showUser}
           onClick={() => setShowUser((value) => !value)}
         >
-          <span aria-hidden="true">📍</span> My Location
+          <span aria-hidden="true">📍</span> {t("crowd.myLocation")}
         </button>
         <button
           type="button"
@@ -118,7 +120,7 @@ function CrowdAreas() {
           aria-pressed={showFacilities}
           onClick={() => setShowFacilities((value) => !value)}
         >
-          <span aria-hidden="true">🚻</span> Facilities
+          <span aria-hidden="true">🚻</span> {t("crowd.facilities")}
         </button>
         <button
           type="button"
@@ -126,7 +128,7 @@ function CrowdAreas() {
           aria-pressed={showRoute}
           onClick={() => setShowRoute((value) => !value)}
         >
-          <span aria-hidden="true">🧭</span> Less Crowded Route
+          <span aria-hidden="true">🧭</span> {t("crowd.lessCrowdedRoute")}
         </button>
       </div>
 
@@ -142,11 +144,12 @@ function CrowdAreas() {
 
       <div className="crowd-map-foot">
         <span>
-          {mapData?.note ||
-            "Crowd status is based on staff and camera observations and may differ from actual conditions."}
+          {t("crowd.note")}
         </span>
         {updatedText && (
-          <span className="crowd-map-updated">Updated {updatedText}</span>
+          <span className="crowd-map-updated">
+            {t("crowd.updated", { time: updatedText })}
+          </span>
         )}
       </div>
 

@@ -21,7 +21,6 @@ function Header({ title }) {
           onClick={() => navigate("/user/alerts")}
         >
           🔔
-          <span className="bell-dot"></span>
         </button>
       </div>
     </header>

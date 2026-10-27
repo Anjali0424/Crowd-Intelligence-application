@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const MOCK_CREDENTIALS = {
   staffId: "admin",
@@ -8,6 +9,7 @@ const MOCK_CREDENTIALS = {
 
 function StaffLogin() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [staffId, setStaffId] = useState("");
   const [password, setPassword] = useState("");
@@ -23,7 +25,7 @@ function StaffLogin() {
       setError("");
       navigate("/admin");
     } else {
-      setError("Invalid Staff ID or password. Please try again.");
+      setError(t("staffLogin.error"));
     }
   };
 
@@ -35,19 +37,18 @@ function StaffLogin() {
 
           <div className="login-shield">🛡️</div>
 
-          <h1 className="login-title">Temple Staff Login</h1>
+          <h1 className="login-title">{t("staffLogin.title")}</h1>
 
-          <p className="login-subtitle">
-            Secure access for authorized temple personnel
-          </p>
+          <p className="login-subtitle">{t("staffLogin.hint")}</p>
 
           <form className="login-form" onSubmit={handleSubmit}>
 
             <label className="login-field">
-              <span>Staff ID</span>
+              <span>{t("staffLogin.staffId")}</span>
               <input
                 type="text"
-                placeholder="Enter your Staff ID"
+                aria-label={t("staffLogin.staffId")}
+                placeholder={t("staffLogin.staffIdPlaceholder")}
                 value={staffId}
                 onChange={(e) => setStaffId(e.target.value)}
                 autoComplete="username"
@@ -55,10 +56,11 @@ function StaffLogin() {
             </label>
 
             <label className="login-field">
-              <span>Password</span>
+              <span>{t("staffLogin.password")}</span>
               <input
                 type="password"
-                placeholder="Enter your password"
+                aria-label={t("staffLogin.password")}
+                placeholder={t("staffLogin.passwordPlaceholder")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
@@ -68,22 +70,17 @@ function StaffLogin() {
             {error && <div className="login-error">{error}</div>}
 
             <button type="submit" className="login-button">
-              Staff Login →
+              {t("staffLogin.submit")}
             </button>
 
           </form>
 
-          <div className="login-hint">
-            🔒 Authorized personnel only
-          </div>
-
-          
           <button
             type="button"
             className="login-back"
             onClick={() => navigate("/")}
           >
-            ← Back to role selection
+            {t("staffLogin.back")}
           </button>
 
         </div>

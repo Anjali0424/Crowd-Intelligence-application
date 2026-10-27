@@ -19,7 +19,9 @@ export const sendChat = async ({
   return res;
 };
 
-export const getSupportedLanguages = () => ['en', 'hi', 'mr', 'te'];
+export const APP_LANGUAGES = ['en', 'hi', 'mr', 'te', 'ta', 'kn'];
+
+export const getSupportedLanguages = () => APP_LANGUAGES;
 
 export const getSpeechLang = (lang) => {
   switch (lang) {
@@ -29,6 +31,10 @@ export const getSpeechLang = (lang) => {
       return 'mr-IN';
     case 'te':
       return 'te-IN';
+    case 'ta':
+      return 'ta-IN';
+    case 'kn':
+      return 'kn-IN';
     case 'en':
     default:
       return 'en-US';

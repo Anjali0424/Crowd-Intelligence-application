@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Circle,
   MapContainer,
@@ -50,10 +51,10 @@ const exitIcon = markerIcon("#e74c3c", "X");
 const focusIcon = markerIcon("#218C4A", "★");
 
 const ROUTE_LEGEND = [
-  ["Entry Gate", "#2ecc71"],
-  ["Queue Area", "#f1c40f"],
-  ["Darshan Area", "#218C4A"],
-  ["Exit Gate", "#e74c3c"],
+  ["map.legendEntry", "#2ecc71"],
+  ["map.legendQueue", "#f1c40f"],
+  ["map.legendDarshan", "#218C4A"],
+  ["map.legendExit", "#e74c3c"],
 ];
 
 function toRadians(value) {
@@ -118,6 +119,7 @@ function FocusView({ point }) {
 }
 
 function LiveMap() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const focusId = searchParams.get("focus");
 
@@ -251,25 +253,19 @@ function LiveMap() {
 
   let sourceNote;
   if (loading) {
-    sourceNote = "Calculating the walking path…";
+    sourceNote = t("map.calculating");
   } else if (source === "osrm") {
-    sourceNote =
-      "Path and duration from OpenStreetMap pedestrian routing (OSRM foot).";
+    sourceNote = t("map.sourceOsrm");
   } else {
-    sourceNote = routingError
-      ? "Walking routing was unavailable, so this is a straight-line estimate."
-      : "Showing a straight-line estimate between the route points.";
+    sourceNote = routingError ? t("map.sourceStraight") : t("map.sourceStraightOnly");
   }
 
   return (
     <div className="temple-route">
       {!ROUTE_COORDINATES_VERIFIED && (
         <div className="temple-route-note" role="status">
-          <span className="temple-route-badge">Demo route</span>
-          <span>
-            Waypoint coordinates are approximate placeholders for the temple
-            area — not a verified pedestrian path.
-          </span>
+          <span className="temple-route-badge">{t("map.demoBadge")}</span>
+          <span>{t("map.demoNote")}</span>
         </div>
       )}
 
@@ -335,34 +331,32 @@ function LiveMap() {
           {!focusPoint && <FitRoute path={path} />}
         </MapContainer>
 
-        <div className="temple-map-legend" aria-label="Route markers">
-          {ROUTE_LEGEND.map(([label, color]) => (
-            <span key={label} className="temple-map-legend-item">
+        <div className="temple-map-legend" aria-label={t("map.templeRoute")}>
+          {ROUTE_LEGEND.map(([labelKey, color]) => (
+            <span key={labelKey} className="temple-map-legend-item">
               <span
                 className="temple-map-legend-dot"
                 style={{ background: color }}
               />
-              {label}
+              {t(labelKey)}
             </span>
           ))}
         </div>
       </div>
 
       <div className="temple-route-panel">
-        <h2>Temple Route</h2>
-        <p className="temple-route-steps">
-          Entry Gate → Queue → Darshan → Exit Gate
-        </p>
+        <h2>{t("map.templeRoute")}</h2>
+        <p className="temple-route-steps">{t("map.routePath")}</p>
 
         <div className="temple-route-metrics">
           <div className="temple-route-metric">
-            <span className="temple-route-metric-label">Walking distance</span>
+            <span className="temple-route-metric-label">{t("map.walkingDistance")}</span>
             <span className="temple-route-metric-value">
               {formatDistance(distanceM)}
             </span>
           </div>
           <div className="temple-route-metric">
-            <span className="temple-route-metric-label">Estimated time</span>
+            <span className="temple-route-metric-label">{t("map.estimatedTime")}</span>
             <span className="temple-route-metric-value">
               {formatDuration(durationS)}
             </span>

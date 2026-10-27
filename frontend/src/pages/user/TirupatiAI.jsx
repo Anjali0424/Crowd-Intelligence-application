@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
-import { getSpeechLang, sendChat } from "../../services/chatbotService";
+import { APP_LANGUAGES, getSpeechLang, sendChat } from "../../services/chatbotService";
 import "./TirupatiAI.css";
 
 function TirupatiAI() {
@@ -22,14 +22,13 @@ function TirupatiAI() {
   const chatRef = useRef(null);
 
   const appLang = (i18n.language || "en").slice(0, 2);
-  const languageCode = ["en", "hi", "mr", "te"].includes(appLang)
-    ? appLang
-    : "en";
+  const languageCode = APP_LANGUAGES.includes(appLang) ? appLang : "en";
 
   const suggestions = [
     t("home.askQ1"),
-    t("home.askQ2"),
+    t("home.askQ5"),
     t("home.askQ3"),
+    t("home.askQ2"),
     t("home.askQ4"),
   ];
 

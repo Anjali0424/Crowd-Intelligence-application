@@ -2,13 +2,14 @@ import { useTranslation } from "react-i18next";
 
 import { changeLanguage } from "../../i18n";
 
-// The three languages surfaced in the home header, in the order devotees are
-// most likely to need. `short` keeps the button compact on small screens while
-// `name` (the English name) is used for accessibility labels/tooltips.
+// Native short names stay readable on a phone. English names are for labels.
 export const HEADER_LANGUAGES = [
-  { code: "en", icon: "🌐", short: "EN", name: "English" },
-  { code: "te", icon: "🗣️", short: "తెలుగు", name: "Telugu" },
-  { code: "hi", icon: "🙏", short: "हिन्दी", name: "Hindi" },
+  { code: "en", short: "EN", name: "English" },
+  { code: "hi", short: "हि", name: "Hindi" },
+  { code: "mr", short: "मर", name: "Marathi" },
+  { code: "te", short: "తె", name: "Telugu" },
+  { code: "kn", short: "ಕನ್ನಡ", name: "Kannada" },
+  { code: "ta", short: "தமிழ்", name: "Tamil" },
 ];
 
 function LanguageSelector() {
@@ -31,12 +32,9 @@ function LanguageSelector() {
             className={selected ? "lang-option selected" : "lang-option"}
             aria-pressed={selected}
             aria-label={language.name}
-            title={`${language.icon} ${language.name}`}
+            title={language.name}
             onClick={() => changeLanguage(language.code)}
           >
-            <span className="lang-icon" aria-hidden="true">
-              {language.icon}
-            </span>
             <span className="lang-text">{language.short}</span>
           </button>
         );

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   MapContainer,
   Marker,
@@ -160,10 +161,17 @@ const destIcon = markerIcon("#218C4A", "D");
 const viaIcon = markerIcon("#f1c40f", "V");
 
 const ROUTE_LEGEND = [
-  ["Start", "#2ecc71"],
-  ["Via point", "#f1c40f"],
-  ["Darshan", "#218C4A"],
+  ["map.legendStart", "#2ecc71"],
+  ["map.legendVia", "#f1c40f"],
+  ["map.legendDarshan", "#218C4A"],
 ];
+
+const ROUTE_TITLE_KEYS = {
+  direct: "route.candidateDirect",
+  "via-queue": "route.candidateQueue",
+  "via-west-mada": "route.candidateWest",
+  "via-east-mada": "route.candidateEast",
+};
 
 function FitRoute({ path }) {
   const map = useMap();
@@ -178,6 +186,7 @@ function FitRoute({ path }) {
 }
 
 function RecommendedRoute() {
+  const { t } = useTranslation();
   const [cameras, setCameras] = useState([]);
   const [loading, setLoading] = useState(true);
   const [routeError, setRouteError] = useState(null);
@@ -217,7 +226,7 @@ function RecommendedRoute() {
       const candidates = buildRouteCandidates();
       if (candidates.length === 0) {
         setLoading(false);
-        setRouteError("Route data is unavailable.");
+        setRouteError("missing");
         return;
       }
 
@@ -244,6 +253,8 @@ function RecommendedRoute() {
           seen.add(signature);
           routes.push({
             key: `${candidate.id}-${option}`,
+            candidateId: candidate.id,
+            optionIndex: option,
             title:
               option === 0
                 ? candidate.title
@@ -266,7 +277,7 @@ function RecommendedRoute() {
       setRawRoutes(routes);
       setRouteError(
         routes.length === 0
-          ? "Could not load walking routes. Check the routing service and try again."
+          ? "failed"
           : null
       );
       setLoading(false);
@@ -332,15 +343,15 @@ function RecommendedRoute() {
     const claimed = new Set();
     const badges = {};
     if (lowest) {
-      badges[lowest.key] = "Lowest crowd";
+      badges[lowest.key] = "lowestCrowd";
       claimed.add(lowest.key);
     }
     if (shortest && !claimed.has(shortest.key)) {
-      badges[shortest.key] = "Shortest distance";
+      badges[shortest.key] = "shortestDistance";
       claimed.add(shortest.key);
     }
     if (fastest && !claimed.has(fastest.key)) {
-      badges[fastest.key] = "Fastest walk";
+      badges[fastest.key] = "fastestWalk";
       claimed.add(fastest.key);
     }
 
@@ -349,7 +360,7 @@ function RecommendedRoute() {
     return withCrowd
       .map((route) => ({
         ...route,
-        badge: badges[route.key] || "Alternative",
+        badge: badges[route.key] || "alternative",
         recommended: route.key === recommendedKey,
       }))
       .sort((a, b) => {
@@ -370,27 +381,30 @@ function RecommendedRoute() {
 
   const path = Array.isArray(selected?.geometry) ? selected.geometry : [];
 
+  const routeLabel = (option) => {
+    const key = ROUTE_TITLE_KEYS[option.candidateId];
+    const base = key ? t(key) : option.title;
+    return option.optionIndex > 0 ? `${base} ${option.optionIndex + 1}` : base;
+  };
+
+  const levelLabel = (level) =>
+    level ? t(`levels.${level === "LOW" ? "lessCrowded" : level === "MODERATE" ? "busy" : level === "HIGH" ? "veryCrowded" : "tooCrowded"}`) : t("levels.busy");
+
   let crowdNote;
   if (liveZones.length === 0) {
-    crowdNote =
-      "Live crowd counts are unavailable right now, so routes are compared by distance and walking time only.";
+    crowdNote = t("route.crowdNoteNoLive");
   } else if (options.length > 0 && options.every((option) => option.density == null)) {
-    crowdNote =
-      "No live crowd reading applies to these routes yet; they are compared by distance and walking time.";
+    crowdNote = t("route.crowdNoteNone");
   } else {
-    crowdNote =
-      "Crowd level is the busiest live-monitored zone a route passes through.";
+    crowdNote = t("route.crowdNoteBusiest");
   }
 
   return (
     <div className="route-page">
       {!ROUTE_COORDINATES_VERIFIED && (
         <div className="temple-route-note" role="status">
-          <span className="temple-route-badge">Demo route</span>
-          <span>
-            Waypoints are approximate placeholders for the temple area. Paths
-            and timings come from OpenStreetMap pedestrian routing (OSRM foot).
-          </span>
+          <span className="temple-route-badge">{t("map.demoBadge")}</span>
+          <span>{t("route.demoNote")}</span>
         </div>
       )}
 
@@ -432,29 +446,30 @@ function RecommendedRoute() {
           <FitRoute path={path} />
         </MapContainer>
 
-        <div className="temple-map-legend" aria-label="Route markers">
-          {ROUTE_LEGEND.map(([label, color]) => (
-            <span key={label} className="temple-map-legend-item">
+        <div className="temple-map-legend" aria-label={t("route.title")}>
+          {ROUTE_LEGEND.map(([labelKey, color]) => (
+            <span key={labelKey} className="temple-map-legend-item">
               <span
                 className="temple-map-legend-dot"
                 style={{ background: color }}
               />
-              {label}
+              {t(labelKey)}
             </span>
           ))}
         </div>
       </div>
 
       <section className="route-options">
-        <h2>Routes to darshan</h2>
-        <p className="route-options-subtitle">
-          Compare walking distance, time and live crowd level, then pick a route
-          to see it on the map.
-        </p>
+        <h2>{t("route.title")}</h2>
+        <p className="route-options-subtitle">{t("route.subtitle")}</p>
         <p className="route-crowd-note">{crowdNote}</p>
 
-        {loading && <p className="route-status">Finding walking routes…</p>}
-        {routeError && <div className="route-error">{routeError}</div>}
+        {loading && <p className="route-status">{t("common.loading")}</p>}
+        {routeError && (
+          <div className="route-error" role="alert">
+            {routeError === "missing" ? t("route.missing") : t("route.loadError")}
+          </div>
+        )}
 
         <div className="route-cards">
           {options.map((option) => {
@@ -471,30 +486,30 @@ function RecommendedRoute() {
                 onClick={() => setSelectedKey(option.key)}
               >
                 <div className="route-card-head">
-                  <span className="route-card-title">{option.title}</span>
+                  <span className="route-card-title">{routeLabel(option)}</span>
                   <span
                     className={`route-badge ${
                       option.recommended ? "is-recommended" : ""
                     }`}
                   >
-                    {option.recommended ? "Recommended" : option.badge}
+                    {option.recommended ? t("route.recommended") : t(`route.${option.badge}`)}
                   </span>
                 </div>
 
                 <div className="route-card-metrics">
                   <span className="route-card-metric">
                     <strong>{formatDistance(option.distance)}</strong>
-                    <small>walk</small>
+                    <small>{t("route.walk")}</small>
                   </span>
                   <span className="route-card-metric">
                     <strong>{formatDuration(option.duration)}</strong>
-                    <small>time</small>
+                    <small>{t("route.time")}</small>
                   </span>
                   <span className="route-card-metric">
                     <strong style={{ color }}>
                       {option.density != null ? `${option.density}%` : "—"}
                     </strong>
-                    <small>crowd</small>
+                    <small>{t("route.crowd")}</small>
                   </span>
                 </div>
 
@@ -504,15 +519,20 @@ function RecommendedRoute() {
                     style={{ background: color }}
                   />
                   {option.density != null
-                    ? `${LEVEL_WORDS[option.level] || "Busy"}${
-                        option.crowdZoneName ? ` at ${option.crowdZoneName}` : ""
-                      }`
-                    : "Crowd data unavailable"}
+                    ? option.crowdZoneName
+                      ? t("route.crowdAt", {
+                          level: levelLabel(option.level),
+                          zone: option.crowdZoneName,
+                        })
+                      : levelLabel(option.level)
+                    : t("route.crowdUnavailable")}
                 </span>
 
                 {(option.via || []).length > 0 && (
                   <span className="route-card-via">
-                    Via {(option.via || []).map((point) => point.name).join(" · ")}
+                    {t("route.via", {
+                      names: (option.via || []).map((point) => point.name).join(" · "),
+                    })}
                   </span>
                 )}
               </button>
@@ -523,13 +543,13 @@ function RecommendedRoute() {
 
       {selected && (
         <section className="route-steps-panel">
-          <h3>{selected.title}</h3>
+          <h3>{routeLabel(selected)}</h3>
           <p className="route-steps-head">
             {formatDistance(selected.distance)} ·{" "}
             {formatDuration(selected.duration)} walking ·{" "}
             {selected.density != null
-              ? `${LEVEL_WORDS[selected.level] || "Busy"}`
-              : "crowd unavailable"}
+              ? levelLabel(selected.level)
+              : t("route.crowdUnavailable")}
           </p>
           <ol className="route-steps-list">
             {(selected.steps || []).map((step, index) => (

@@ -9,8 +9,8 @@ import ta from "./locales/ta.json";
 import kn from "./locales/kn.json";
 
 // Languages bundled with the app. `code` is the BCP-47 tag (also used for Intl
-// number/date formatting); `label` is the native name. The home header surfaces
-// a compact subset of these (see LanguageSelector).
+// number/date formatting); `label` is the native name. The header shows all of
+// these (see LanguageSelector).
 export const LANGUAGES = [
   { code: "en", label: "English" },
   { code: "te", label: "తెలుగు" },
@@ -67,6 +67,7 @@ i18n.use(initReactI18next).init({
 function syncDocumentLanguage(language) {
   if (typeof document !== "undefined" && document.documentElement) {
     document.documentElement.setAttribute("lang", language);
+    document.title = i18n.t("common.appName");
   }
 }
 
