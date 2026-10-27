@@ -1,0 +1,331 @@
+/* Main map layout */
+.temple-route {
+  width: 100%;
+  color: #123d2d;
+}
+
+/* Map container */
+.temple-route-shell {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #e8f2e8;
+}
+
+.temple-route-shell .temple-map-leaflet,
+.temple-route-shell .leaflet-container {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* Leaflet zoom controls */
+.temple-route-shell .leaflet-control-zoom {
+  border: none;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+}
+
+.temple-route-shell .leaflet-control-zoom a {
+  color: #183a2b;
+}
+
+/* Map markers */
+.temple-map-marker-icon {
+  background: transparent;
+  border: 0;
+}
+
+.temple-map-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--marker-color, #218c4a);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 2px 7px rgb(0 0 0 / 28%);
+}
+
+/* Route marker legend */
+.temple-map-legend {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 500;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 12px;
+  padding: 7px 9px;
+  border: 1px solid #dce6dc;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 95%);
+  color: #254b38;
+  font-size: 11px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
+}
+
+.temple-map-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.temple-map-legend-dot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+/* Route line rendering */
+.temple-route-shell .leaflet-overlay-pane path {
+  vector-effect: non-scaling-stroke;
+}
+
+.temple-route-shell .leaflet-interactive {
+  transition: stroke 180ms ease-in-out, opacity 180ms ease-in-out;
+}
+
+/* AI crowd traffic section */
+.traffic-status-section {
+  margin-top: 14px;
+  padding: 15px;
+  border: 1px solid #e1eee3;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgb(18 61 45 / 5%);
+}
+
+.traffic-status-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.traffic-status-heading h3 {
+  margin: 0;
+  color: #123d2d;
+  font-size: 18px;
+}
+
+.traffic-connection-ok,
+.traffic-connection-error {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.traffic-connection-ok {
+  color: #198747;
+}
+
+.traffic-connection-error {
+  color: #c62828;
+}
+
+.traffic-error-message {
+  margin: 8px 0;
+  color: #b42318;
+  font-size: 12px;
+}
+
+/* Traffic status legend */
+.traffic-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin: 12px 0;
+  font-size: 12px;
+}
+
+.traffic-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.traffic-legend-color {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.traffic-low {
+  background-color: #22a447;
+}
+
+.traffic-moderate {
+  background-color: #f59e0b;
+}
+
+.traffic-high {
+  background-color: #ef4444;
+}
+
+.traffic-critical {
+  background-color: #991b1b;
+}
+
+.traffic-no-data {
+  background-color: #808080;
+}
+
+/* Crowd information cards */
+.crowd-status-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.crowd-status-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #e5eee7;
+  border-radius: 12px;
+  background: #f7fbf7;
+  box-shadow: 0 1px 3px rgb(18 61 45 / 4%);
+}
+
+.crowd-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.crowd-card-title-row h4 {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.crowd-card-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.crowd-status-card p {
+  margin: 7px 0 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.crowd-camera-source {
+  color: #64756a;
+  font-size: 11px !important;
+}
+
+/* Traffic data note */
+.traffic-data-note {
+  margin: 12px 0 0;
+  color: #68786e;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* Temple route information */
+.temple-route-panel {
+  margin-top: 14px;
+  padding: 18px;
+  border: 1px solid #e5f0e6;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgb(18 61 45 / 5%);
+}
+
+.temple-route-panel h2 {
+  margin: 0 0 6px;
+  color: #123d2d;
+  font-size: 24px;
+}
+
+.temple-route-steps {
+  margin: 0 0 14px;
+  color: #168044;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.temple-route-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.temple-route-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 13px;
+  border: 1px solid #e3f1e5;
+  border-radius: 14px;
+  background: #f4faf5;
+}
+
+.temple-route-metric-label {
+  color: #557363;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.temple-route-metric-value {
+  color: #12613b;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.temple-route-source {
+  margin: 12px 0 0;
+  color: #68786e;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Mobile layout */
+@media (max-width: 600px) {
+  .temple-route-shell {
+    height: 400px;
+    border-radius: 15px;
+  }
+
+  .temple-map-legend {
+    gap: 6px 8px;
+    font-size: 10px;
+  }
+
+  .traffic-status-section,
+  .temple-route-panel {
+    padding: 13px;
+  }
+
+  .crowd-status-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .temple-route-panel h2 {
+    font-size: 21px;
+  }
+
+  .temple-route-metric-value {
+    font-size: 19px;
+  }
+
+  .traffic-legend {
+    gap: 9px;
+  }
+}

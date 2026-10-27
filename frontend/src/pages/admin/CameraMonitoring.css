@@ -1,204 +1,372 @@
+/* ========================================
+CAMERA MONITORING PAGE
+======================================== */
+
 .camera-page {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: hidden;
+display: flex;
+flex-direction: column;
+gap: 12px;
+width: 100%;
+max-width: 100%;
+min-width: 0;
+overflow-x: hidden;
+box-sizing: border-box;
 }
 
+.camera-page *,
+.camera-page *::before,
+.camera-page *::after {
+box-sizing: border-box;
+}
+
+/* ========================================
+PAGE HEADING
+======================================== */
+
 .camera-heading h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 800;
-  color: #14532D;
+margin: 0;
+font-size: 18px;
+font-weight: 800;
+color: #14532d;
 }
 
 .camera-heading p {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: #64816D;
+margin: 2px 0 0;
+font-size: 12px;
+color: #64816d;
 }
 
 .camera-note {
-  display: inline-block;
-  margin-top: 4px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  color: #218C4A;
-  background: #F3FAF4;
-  border: 1px dashed #D7EBDD;
-  border-radius: 999px;
-  padding: 3px 8px;
+display: inline-block;
+margin-top: 4px;
+padding: 3px 8px;
+font-size: 10px;
+font-weight: 800;
+letter-spacing: 0.5px;
+color: #218c4a;
+background: #f3faf4;
+border: 1px dashed #d7ebdd;
+border-radius: 999px;
 }
+
+/* ========================================
+ERROR MESSAGE
+======================================== */
 
 .camera-error {
-  background: #ffe5e5;
-  color: #d92d20;
-  border: 1px solid #ffd4cf;
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: 12px;
+padding: 10px 12px;
+font-size: 12px;
+color: #d92d20;
+background: #ffe5e5;
+border: 1px solid #ffd4cf;
+border-radius: 12px;
+overflow-wrap: anywhere;
 }
 
+/* ========================================
+CAMERA GRID
+======================================== */
+
 .camera-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 10px;
-  width: 100%;
+display: grid;
+grid-template-columns: repeat(2, minmax(0, 1fr));
+gap: 10px;
+width: 100%;
+min-width: 0;
 }
 
 .camera-card {
-  min-width: 0;
-  width: 100%;
-  overflow: hidden;
+width: 100%;
+min-width: 0;
+overflow: hidden;
+border-radius: 12px;
 }
+
+/* ========================================
+CAMERA VIDEO
+======================================== */
 
 .camera-video-btn {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-  border-radius: 11px;
-  overflow: hidden;
+display: block;
+width: 100%;
+min-width: 0;
+padding: 0;
+border: none;
+background: transparent;
+border-radius: 11px;
+overflow: hidden;
+cursor: pointer;
 }
 
-.camera-video {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  aspect-ratio: 16 / 9;
-  height: auto;
-  object-fit: contain;
-  background: #000;
-  border-radius: 11px;
+.camera-video-wrapper {
+position: relative;
+width: 100%;
+min-width: 0;
+overflow: hidden;
+background: #111;
+border-radius: 11px;
 }
+
+.camera-video,
+.camera-video-large,
+.camera-video-wrapper img {
+display: block;
+width: 100%;
+height: auto;
+min-width: 0;
+aspect-ratio: 16 / 9;
+object-fit: contain;
+background: #000;
+}
+
+.camera-video-wrapper img {
+max-width: 100%;
+}
+
+.camera-video-btn:focus-visible,
+.camera-close:focus-visible,
+.camera-action:focus-visible,
+.camera-stop:focus-visible {
+outline: 3px solid #218c4a;
+outline-offset: 3px;
+}
+
+/* ========================================
+VIDEO FALLBACK
+======================================== */
 
 .camera-video-fallback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 8px;
-  font-size: 12px;
-  color: #ffd4cf;
-  background: #1b1b1b;
+display: flex;
+align-items: center;
+justify-content: center;
+width: 100%;
+min-height: 120px;
+padding: 12px;
+text-align: center;
+overflow-wrap: anywhere;
+font-size: 12px;
+color: #ffd4cf;
+background: #1b1b1b;
 }
+
+/* ========================================
+CAMERA COUNT AND SUMMARY
+======================================== */
 
 .camera-count {
-  font-size: 12px;
-  color: #218C4A;
+font-size: 12px;
+color: #218c4a;
+overflow-wrap: anywhere;
 }
 
+/* ========================================
+CAMERA ACTION BUTTONS
+======================================== */
+
 .camera-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+display: flex;
+flex-wrap: wrap;
+gap: 6px;
+width: 100%;
+min-width: 0;
 }
 
 .camera-action,
 .camera-stop {
-  flex: 1 1 auto;
-  min-width: 0;
-  border: none;
-  border-radius: 9px;
-  padding: 7px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
+flex: 1 1 auto;
+min-width: 0;
+padding: 7px 10px;
+border: none;
+border-radius: 9px;
+font-size: 12px;
+font-weight: 700;
+cursor: pointer;
+transition:
+opacity 0.2s ease,
+background-color 0.2s ease;
 }
 
 .camera-action {
-  background: #218C4A;
-  color: #fff;
+color: #fff;
+background: #218c4a;
+}
+
+.camera-action:hover:not(:disabled) {
+background: #176b37;
 }
 
 .camera-stop {
-  background: #ffe5e5;
-  color: #d92d20;
+color: #d92d20;
+background: #ffe5e5;
+}
+
+.camera-stop:hover:not(:disabled) {
+background: #ffd4cf;
 }
 
 .camera-action:disabled,
 .camera-stop:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+opacity: 0.5;
+cursor: not-allowed;
+}
+
+/* ========================================
+CAMERA STATUS
+======================================== */
+
+.camera-status {
+display: inline-flex;
+align-items: center;
+gap: 5px;
+padding: 4px 8px;
+border-radius: 999px;
+font-size: 11px;
+font-weight: 700;
+overflow-wrap: anywhere;
 }
 
 .camera-status.is-playing {
-  color: #218C4A;
-  background: #EAF7EC;
+color: #218c4a;
+background: #eaf7ec;
 }
 
 .camera-status.is-error {
-  color: #d92d20;
-  background: #ffe5e5;
+color: #d92d20;
+background: #ffe5e5;
 }
 
 .camera-status.is-unavailable {
-  color: #64816D;
-  background: #F3FAF4;
+color: #64816d;
+background: #f3faf4;
 }
 
+/* ========================================
+PERSON DETECTION OVERLAY
+Use only when drawing boxes in the frontend.
+If the backend already draws boxes on its
+MJPEG frames, do not add another overlay.
+======================================== */
+
+.detection-overlay {
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+overflow: hidden;
+pointer-events: none;
+}
+
+.detection-box {
+position: absolute;
+border: 2px solid #00ff66;
+box-sizing: border-box;
+}
+
+.detection-label {
+position: absolute;
+top: -23px;
+left: -2px;
+max-width: 180px;
+padding: 3px 5px;
+overflow: hidden;
+color: #fff;
+background: #00a844;
+border-radius: 3px;
+font-size: 11px;
+font-weight: 700;
+text-overflow: ellipsis;
+white-space: nowrap;
+}
+
+/* ========================================
+CAMERA MODAL
+======================================== */
+
 .camera-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(20, 12, 48, 0.65);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  z-index: 1000;
+position: fixed;
+inset: 0;
+z-index: 1000;
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 12px;
+background: rgba(20, 12, 48, 0.65);
 }
 
 .camera-modal {
-  background: #fff;
-  border-radius: 16px;
-  padding: 14px;
-  width: 100%;
-  max-width: 900px;
-  max-height: 92vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  box-shadow: 0 18px 50px rgba(20, 12, 48, 0.4);
+display: flex;
+flex-direction: column;
+gap: 10px;
+width: 100%;
+max-width: 900px;
+max-height: 92vh;
+min-width: 0;
+padding: 14px;
+overflow-x: hidden;
+overflow-y: auto;
+background: #fff;
+border-radius: 16px;
+box-shadow: 0 18px 50px rgba(20, 12, 48, 0.4);
 }
 
 .camera-modal h2 {
-  margin: 0;
-  font-size: 16px;
-  color: #14532D;
+margin: 0;
+color: #14532d;
+font-size: 16px;
+overflow-wrap: anywhere;
 }
 
 .camera-modal h3 {
-  margin: 0;
-  font-size: 14px;
-  color: #218C4A;
-}
-
-.camera-video-large {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  height: auto;
-  object-fit: contain;
-  background: #000;
-  border-radius: 11px;
+margin: 0;
+color: #218c4a;
+font-size: 14px;
 }
 
 .camera-close {
-  align-self: flex-end;
-  border: 1px solid #EAF7EC;
-  background: #F3FAF4;
-  color: #218C4A;
-  border-radius: 9px;
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
+align-self: flex-end;
+padding: 5px 10px;
+color: #218c4a;
+background: #f3faf4;
+border: 1px solid #eaf7ec;
+border-radius: 9px;
+font-size: 12px;
+font-weight: 700;
+cursor: pointer;
+}
+
+/* ========================================
+RESPONSIVE LAYOUT
+======================================== */
+
+@media (max-width: 600px) {
+.camera-grid {
+grid-template-columns: minmax(0, 1fr);
+gap: 12px;
+}
+
+.camera-heading h2 {
+font-size: 17px;
+}
+
+.camera-modal-backdrop {
+padding: 8px;
+}
+
+.camera-modal {
+max-height: 95vh;
+padding: 10px;
+border-radius: 12px;
+}
+
+.camera-action,
+.camera-stop {
+padding: 8px;
+}
+}
+
+@media (prefers-reduced-motion: reduce) {
+.camera-action,
+.camera-stop {
+transition: none;
+}
 }
