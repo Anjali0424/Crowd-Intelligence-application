@@ -89,6 +89,47 @@ class PredictIn(BaseModel):
     camera_count: Optional[int] = Field(default=None, ge=0)
     use_live: bool = True
     persist: bool = True
+    # Planned-arrival fields used by the devotee time picker. When arrival_time
+    # is present, the CSV-trained model is used instead of the queue baseline.
+    arrival_time: Optional[str] = None
+    arrival_date: Optional[date] = None
+    darshan_type: Optional[str] = None
+
+
+def _predict_planned_arrival(body: PredictIn) -> dict:
+    """Predict from the selected arrival without inventing crowd context."""
+    if not body.darshan_type or not body.darshan_type.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="darshan_type is required when arrival_time is provided.",
+        )
+    raw_time = (body.arrival_time or "").strip()
+    pieces = raw_time.split(":")
+    if len(pieces) == 3 and all(piece.isdigit() for piece in pieces):
+        raw_time = f"{pieces[0]}:{pieces[1]}"
+    try:
+        slot = normalize_slot(raw_time)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    try:
+        from ml.predict import InvalidPredictionInput, ModelNotAvailable, predict_for_request
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"The Darshan time model could not be loaded: {exc}",
+        )
+
+    try:
+        return predict_for_request(
+            arrival_time=slot,
+            darshan_type=body.darshan_type,
+            arrival_date=body.arrival_date,
+        )
+    except ModelNotAvailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except InvalidPredictionInput as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 def _validate_level(level: Optional[str]) -> Optional[str]:
@@ -232,7 +273,15 @@ def prediction(
 
 @router.post("/predict")
 def predict(body: PredictIn, db: Session = Depends(get_db)):
-    """Compute and store a prediction."""
+    """Compute and store a prediction.
+
+    A planned ``arrival_time`` uses the CSV-trained demonstration model. The
+    existing queue, camera, and staff fields keep the previous baseline
+    contract for the admin forecast screen.
+    """
+    if body.arrival_time and body.arrival_time.strip():
+        return _predict_planned_arrival(body)
+
     live = svc.get_current_status(db) if body.use_live else {}
 
     queue = body.queue_population if body.queue_population is not None else live.get("queue_population")

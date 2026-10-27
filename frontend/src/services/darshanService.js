@@ -26,6 +26,21 @@ export async function runDarshanPrediction(payload = {}) {
   return apiPost("/api/darshan/predict", payload, { headers: adminHeaders });
 }
 
+export async function predictDarshanArrival({
+  arrivalTime,
+  arrivalDate,
+  darshanType,
+}) {
+  const payload = {
+    arrival_time: arrivalTime,
+    darshan_type: darshanType,
+    use_live: false,
+    persist: false,
+  };
+  if (arrivalDate) payload.arrival_date = arrivalDate;
+  return apiPost("/api/darshan/predict", payload);
+}
+
 export async function saveDarshanRecord(record) {
   return apiPost("/api/darshan/records", record, { headers: adminHeaders });
 }

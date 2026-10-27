@@ -6,7 +6,11 @@ import templeImage from "../../assets/images/temple.jpg";
 import { getCameraCounts } from "../../services/crowdService";
 import { translateData } from "../../i18n";
 import { sendChat, getSpeechLang } from "../../services/chatbotService";
-import { getDarshanCurrent, formatClock } from "../../services/darshanService";
+import {
+  getDarshanCurrent,
+  formatClock,
+  predictDarshanArrival,
+} from "../../services/darshanService";
 import { getCrowdCardColors } from "../../utils/crowdLevel";
 import "./UserHome.css";
 
@@ -35,6 +39,32 @@ function levelFromDensity(density) {
   if (density < 70) return "MODERATE";
   if (density < 90) return "HIGH";
   return "CRITICAL";
+}
+
+const DARSHAN_TYPES = [
+  "Sarva Darshan",
+  "Special Entry Darshan",
+  "Divya Darshan",
+];
+
+function formatHm(value) {
+  if (!value || typeof value !== "string") return "—";
+  const match = /^(\d{2}):(\d{2})$/.exec(value);
+  if (!match) return value;
+  const date = new Date(2000, 0, 1, Number(match[1]), Number(match[2]));
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function formatIsoDate(value) {
+  if (!value || typeof value !== "string") return "";
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return value;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return date.toLocaleDateString([], {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function formatDuration(t, value) {
@@ -71,6 +101,7 @@ function UserHome() {
       now.getMinutes()
     ).padStart(2, "0")}`;
   });
+  const [selectedDarshanType, setSelectedDarshanType] = useState("Sarva Darshan");
   const [selectedTimePrediction, setSelectedTimePrediction] = useState(null);
   const [selectedTimePredictionLoading, setSelectedTimePredictionLoading] = useState(false);
   const [selectedTimePredictionError, setSelectedTimePredictionError] = useState("");
@@ -248,65 +279,44 @@ function UserHome() {
       setSelectedTimePredictionError("Please select an arrival time.");
       return;
     }
+    if (!selectedDarshanType) {
+      setSelectedTimePredictionError("Please select a darshan type.");
+      return;
+    }
 
     setSelectedTimePredictionLoading(true);
     setSelectedTimePredictionError("");
     setSelectedTimePrediction(null);
 
     try {
-      // Reuse the existing backend prediction endpoint. This endpoint currently
-      // provides the latest estimate; it does not necessarily forecast future
-      // crowd conditions for the selected arrival time.
-      const res = await getDarshanCurrent();
-      const prediction = res?.prediction;
+      const res = await predictDarshanArrival({
+        arrivalTime: selectedDarshanTime,
+        darshanType: selectedDarshanType,
+      });
 
-      if (
-        !prediction?.available ||
-        prediction.total_minutes === null ||
-        prediction.total_minutes === undefined ||
-        !Number.isFinite(Number(prediction.total_minutes))
-      ) {
+      if (!res?.available) {
         setSelectedTimePredictionError(
-          "Prediction is unavailable because current crowd data or a valid model estimate is missing."
+          res?.message ||
+            "A prediction is not available for that arrival. Please choose another time."
         );
         return;
       }
 
-      const [hours, minutes] = selectedDarshanTime.split(":").map(Number);
-      const now = new Date();
-      const arrival = new Date(now);
-      arrival.setHours(hours, minutes, 0, 0);
-
-      // Treat a selected time earlier than the current clock time as tomorrow.
-      if (arrival.getTime() < now.getTime()) {
-        arrival.setDate(arrival.getDate() + 1);
-      }
-
-      const totalMinutes = Math.max(0, Math.round(Number(prediction.total_minutes)));
-      const completion = new Date(arrival.getTime() + totalMinutes * 60 * 1000);
-      const waitMinutes =
-        prediction.wait_minutes === null || prediction.wait_minutes === undefined
-          ? null
-          : Math.max(0, Math.round(Number(prediction.wait_minutes)));
-
       setSelectedTimePrediction({
-        arrivalTime: arrival.toLocaleTimeString([], {
-          hour: "numeric",
-          minute: "2-digit",
-        }),
-        totalMinutes,
-        waitMinutes,
-        completionTime: completion.toLocaleTimeString([], {
-          hour: "numeric",
-          minute: "2-digit",
-        }),
-        crowdLevel: prediction.crowd_level || null,
-        source: prediction.prediction_source || "latest_available_estimate",
+        arrivalTime: formatHm(res.arrival_time),
+        arrivalDate: formatIsoDate(res.arrival_date),
+        darshanType: res.darshan_type,
+        totalMinutes: res.total_time_minutes,
+        waitMinutes: res.queue_wait_minutes,
+        durationMinutes: res.darshan_duration_minutes,
+        completionTime: formatHm(res.expected_completion),
+        crossesMidnight: Boolean(res.crosses_midnight),
+        warning: res.demo_warning,
       });
       setShowDarshanTimePicker(false);
     } catch (err) {
       setSelectedTimePredictionError(
-        "Unable to get a prediction right now. Please try again."
+        err?.message || "Unable to get a prediction right now. Please try again."
       );
     } finally {
       setSelectedTimePredictionLoading(false);
@@ -748,6 +758,41 @@ function UserHome() {
             }}
           >
             <label
+              htmlFor="planned-darshan-type"
+              style={{
+                display: "block",
+                marginBottom: "8px",
+                color: "#14532d",
+                fontWeight: 700,
+              }}
+            >
+              Darshan type
+            </label>
+            <select
+              id="planned-darshan-type"
+              value={selectedDarshanType}
+              onChange={(event) => setSelectedDarshanType(event.target.value)}
+              style={{
+                display: "block",
+                width: "100%",
+                minHeight: "46px",
+                boxSizing: "border-box",
+                marginBottom: "14px",
+                padding: "10px 12px",
+                border: "1px solid #b8dcc5",
+                borderRadius: "10px",
+                background: "#ffffff",
+                color: "#14532d",
+                fontSize: "16px",
+              }}
+            >
+              {DARSHAN_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+            <label
               htmlFor="planned-darshan-time"
               style={{
                 display: "block",
@@ -795,8 +840,17 @@ function UserHome() {
               onClick={handleSelectedTimePrediction}
               disabled={selectedTimePredictionLoading || !selectedDarshanTime}
             >
-              {selectedTimePredictionLoading ? "Predicting..." : "Done"}
+              {selectedTimePredictionLoading
+                ? "Predicting darshan time…"
+                : selectedTimePredictionError
+                  ? "Retry"
+                  : "Done"}
             </button>
+            {selectedTimePredictionLoading ? (
+              <p className="dh-darshan-state" role="status">
+                Predicting darshan time…
+              </p>
+            ) : null}
             {selectedTimePredictionError ? (
               <p className="dh-darshan-hint" role="alert">
                 {selectedTimePredictionError}
@@ -817,12 +871,27 @@ function UserHome() {
               🛕 Your Darshan Time Estimate
             </h4>
             <p style={{ margin: "6px 0" }}>
-              <strong>Planned arrival:</strong> {selectedTimePrediction.arrivalTime}
+              <strong>Planned arrival:</strong>{" "}
+              {selectedTimePrediction.arrivalDate
+                ? `${selectedTimePrediction.arrivalTime}, ${selectedTimePrediction.arrivalDate}`
+                : selectedTimePrediction.arrivalTime}
             </p>
+            {selectedTimePrediction.darshanType ? (
+              <p style={{ margin: "6px 0" }}>
+                <strong>Darshan type:</strong> {selectedTimePrediction.darshanType}
+              </p>
+            ) : null}
             {selectedTimePrediction.waitMinutes !== null ? (
               <p style={{ margin: "6px 0" }}>
                 <strong>Estimated queue wait:</strong>{" "}
                 {formatDuration(t, selectedTimePrediction.waitMinutes)}
+              </p>
+            ) : null}
+            {selectedTimePrediction.durationMinutes !== null &&
+            selectedTimePrediction.durationMinutes !== undefined ? (
+              <p style={{ margin: "6px 0" }}>
+                <strong>Darshan duration:</strong>{" "}
+                {formatDuration(t, selectedTimePrediction.durationMinutes)}
               </p>
             ) : null}
             <p style={{ margin: "6px 0" }}>
@@ -832,16 +901,13 @@ function UserHome() {
             <p style={{ margin: "6px 0" }}>
               <strong>Expected completion:</strong>{" "}
               {selectedTimePrediction.completionTime}
+              {selectedTimePrediction.crossesMidnight ? " (next day)" : ""}
             </p>
-            {selectedTimePrediction.crowdLevel ? (
-              <p style={{ margin: "6px 0" }}>
-                <strong>Crowd level:</strong>{" "}
-                {crowdText(t, selectedTimePrediction.crowdLevel)}
+            {selectedTimePrediction.warning ? (
+              <p style={{ margin: "10px 0 0", color: "#537568", fontSize: "12px" }}>
+                {selectedTimePrediction.warning}
               </p>
             ) : null}
-            <p style={{ margin: "10px 0 0", color: "#537568", fontSize: "12px" }}>
-              Estimate uses the latest available backend prediction; it may not forecast crowd changes at the selected future time.
-            </p>
             <button
               type="button"
               className="dh-time-btn"

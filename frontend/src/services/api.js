@@ -8,6 +8,19 @@ export const API_BASE =
     ? envBase.trim().replace(/\/+$/, "")
     : DEFAULT_API_BASE;
 
+function errorDetail(payload, fallback) {
+  const detail = payload?.detail;
+  if (typeof detail === "string" && detail.trim()) return detail;
+  if (Array.isArray(detail)) {
+    const text = detail
+      .map((item) => (typeof item === "string" ? item : item?.msg))
+      .filter(Boolean)
+      .join(" ");
+    if (text) return text;
+  }
+  return fallback;
+}
+
 export async function apiGet(path) {
   const res = await fetch(`${API_BASE}${path}`, {
     cache: "no-store",
@@ -16,7 +29,7 @@ export async function apiGet(path) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || res.statusText);
+    throw new Error(errorDetail(err, res.statusText));
   }
 
   return res.json();
@@ -31,7 +44,7 @@ export async function apiPost(path, data, options = {}) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    const error = new Error(err.detail || res.statusText);
+    const error = new Error(errorDetail(err, res.statusText));
     error.response = { data: err };
     throw error;
   }
@@ -48,7 +61,7 @@ export async function apiPut(path, data, options = {}) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    const error = new Error(err.detail || res.statusText);
+    const error = new Error(errorDetail(err, res.statusText));
     error.response = { data: err };
     throw error;
   }
