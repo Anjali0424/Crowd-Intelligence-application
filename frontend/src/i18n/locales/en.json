@@ -93,6 +93,7 @@
     "countingNotActive": "Counting not active",
     "peopleFull": "{{people}}/{{capacity}} people • {{density}}% full",
     "viewCrowd": "View Crowd",
+    "backToHome": "Back",
     "askTitle": "Ask Tirupati AI",
     "askSubtitle": "Your personal temple guide",
     "askDescription": "Ask about Tirumala temple facilities, darshan, routes, prasadam and crowd conditions.",
