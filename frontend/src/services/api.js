@@ -1,7 +1,7 @@
 ﻿// Single source of truth for the backend base URL. Override with the
 // VITE_API_BASE environment variable; otherwise use the FastAPI default port.
 const envBase = import.meta.env.VITE_API_BASE;
-const DEFAULT_API_BASE = "http://127.0.0.1:8000";
+const DEFAULT_API_BASE = "https://crowd-intelligence-application.onrender.com";
 
 export const API_BASE =
   typeof envBase === "string" && envBase.trim()

@@ -32,4 +32,4 @@ npm install
 npm run dev
 ```
 
-VITE_API_BASE defaults to `http://localhost:8000`.
+VITE_API_BASE defaults to `https://crowd-intelligence-application.onrender.com`.
