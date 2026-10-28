@@ -211,10 +211,14 @@ Create or configure the frontend environment file if required by your applicatio
 For example, if your frontend uses a configurable API URL:
 
 ```env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=https://crowd-intelligence-application.onrender.com
 ```
 
-Use the environment variable name expected by your actual code.
+To use a backend running on your computer instead, set:
+
+```env
+VITE_API_URL=http://127.0.0.1:8000
+```
 
 ### Step 3: Set up the backend
 

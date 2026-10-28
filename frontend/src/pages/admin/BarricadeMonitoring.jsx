@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./BarricadeMonitoring.css";
-import { API_BASE, apiGet, apiPost } from "../../services/api";
+import { API_BASE, apiGet, apiPost, toWebSocketUrl } from "../../services/api";
 
 const streamFeedUrl = (cameraId) =>
   `${API_BASE}/api/barricade/cameras/${encodeURIComponent(cameraId)}/feed`;
@@ -119,7 +119,7 @@ export default function BarricadeMonitoring() {
 
   // WebSocket for instant guard notifications
   useEffect(() => {
-    const wsUrl = `${API_BASE.replace(/^http/, "ws")}/api/barricade/ws`;
+    const wsUrl = toWebSocketUrl("/api/barricade/ws");
     let ws;
     try {
       ws = new WebSocket(wsUrl);

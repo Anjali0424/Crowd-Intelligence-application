@@ -1,12 +1,24 @@
-﻿// Single source of truth for the backend base URL. Override with the
-// VITE_API_BASE environment variable; otherwise use the FastAPI default port.
-const envBase = import.meta.env.VITE_API_BASE;
-const DEFAULT_API_BASE = "http://127.0.0.1:8000";
+﻿// One backend address for every API call. Production uses the deployed API.
+// Set VITE_API_URL (or the older VITE_API_BASE) to http://127.0.0.1:8000
+// when you want the local FastAPI server instead.
+const PRODUCTION_API_BASE = "https://crowd-intelligence-application.onrender.com";
 
-export const API_BASE =
-  typeof envBase === "string" && envBase.trim()
-    ? envBase.trim().replace(/\/+$/, "")
-    : DEFAULT_API_BASE;
+function cleanBase(value) {
+  if (typeof value !== "string") return "";
+  return value.trim().replace(/\/+$/, "");
+}
+
+const configuredBase =
+  cleanBase(import.meta.env.VITE_API_URL) ||
+  cleanBase(import.meta.env.VITE_API_BASE);
+
+export const API_BASE = configuredBase || PRODUCTION_API_BASE;
+
+export function toWebSocketUrl(path) {
+  const suffix = path.startsWith("/") ? path : `/${path}`;
+  const wsBase = API_BASE.replace(/^https:/i, "wss:").replace(/^http:/i, "ws:");
+  return `${wsBase}${suffix}`;
+}
 
 function errorDetail(payload, fallback) {
   const detail = payload?.detail;
