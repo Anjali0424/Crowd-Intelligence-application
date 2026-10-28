@@ -94,6 +94,10 @@ class PredictIn(BaseModel):
     arrival_time: Optional[str] = None
     arrival_date: Optional[date] = None
     darshan_type: Optional[str] = None
+    # Clock time at which the supplied queue estimate starts. This does not
+    # forecast a future crowd count.
+    target_time: Optional[str] = None
+    target_date: Optional[date] = None
 
 
 def _predict_planned_arrival(body: PredictIn) -> dict:
@@ -132,10 +136,33 @@ def _predict_planned_arrival(body: PredictIn) -> dict:
         raise HTTPException(status_code=422, detail=str(exc))
 
 
-def _validate_level(level: Optional[str]) -> Optional[str]:
-    if value is None:
+def measurement_source(live: Optional[dict], *, use_live: bool, supplied: bool) -> Optional[str]:
+    """Name where the queue numbers came from. Never call staff input a camera count."""
+    live_source = live.get("source") if isinstance(live, dict) else None
+    if live_source not in {"camera", "staff", "hybrid"}:
+        live_source = None
+    if use_live and supplied and live_source:
+        return "hybrid"
+    if use_live and not supplied:
+        return live_source
+    if supplied:
+        return "staff"
+    return None
+
+
+def _target_datetime(target_time: Optional[str], target_date: Optional[date]) -> Optional[datetime]:
+    if not target_time or not str(target_time).strip():
         return None
-    upper = value.upper()
+    slot = normalize_slot(str(target_time))
+    hours, minutes = (int(part) for part in slot.split(":"))
+    day = target_date or date.today()
+    return datetime(day.year, day.month, day.day, hours, minutes)
+
+
+def _validate_level(level: Optional[str]) -> Optional[str]:
+    if level is None:
+        return None
+    upper = level.upper()
     if upper not in CROWD_LEVELS:
         raise HTTPException(
             status_code=422,
@@ -249,6 +276,15 @@ def prediction(
     db: Session = Depends(get_db),
 ):
     """Compute a prediction without storing it (safe for polling)."""
+    supplied = any(
+        value is not None
+        for value in (
+            queue_population,
+            people_inside,
+            processing_rate_per_hour,
+            entry_rate_per_hour,
+        )
+    )
     live = svc.get_current_status(db) if use_live else {}
 
     if queue_population is None:
@@ -265,6 +301,7 @@ def prediction(
         processing_rate=processing_rate_per_hour,
         entry_rate=entry_rate_per_hour,
         camera_count=live.get("camera_count"),
+        input_source=measurement_source(live, use_live=use_live, supplied=supplied),
         persist=False,
     )
     result["live"] = live
@@ -282,6 +319,15 @@ def predict(body: PredictIn, db: Session = Depends(get_db)):
     if body.arrival_time and body.arrival_time.strip():
         return _predict_planned_arrival(body)
 
+    supplied = any(
+        value is not None
+        for value in (
+            body.queue_population,
+            body.people_inside,
+            body.processing_rate_per_hour,
+            body.entry_rate_per_hour,
+        )
+    )
     live = svc.get_current_status(db) if body.use_live else {}
 
     queue = body.queue_population if body.queue_population is not None else live.get("queue_population")
@@ -291,6 +337,10 @@ def predict(body: PredictIn, db: Session = Depends(get_db)):
         if body.processing_rate_per_hour is not None
         else live.get("processing_rate_per_hour")
     )
+    try:
+        target = _target_datetime(body.target_time, body.target_date)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
     result = svc.predict(
         db,
@@ -301,8 +351,16 @@ def predict(body: PredictIn, db: Session = Depends(get_db)):
         passes_issued=body.passes_issued,
         actual_entries=body.actual_entries,
         camera_count=body.camera_count if body.camera_count is not None else live.get("camera_count"),
+        input_source=measurement_source(live, use_live=body.use_live, supplied=supplied),
+        when=target,
         persist=body.persist,
     )
+    if target is not None:
+        result["forecast_note"] = (
+            "Waiting time for the queue count and service rate supplied. "
+            "The selected time is when that wait starts. "
+            "It does not predict how many people will be there."
+        )
     result["live"] = live
     return result
 
@@ -335,6 +393,7 @@ def current(db: Session = Depends(get_db)):
         people_inside=live.get("people_inside"),
         processing_rate=live.get("processing_rate_per_hour"),
         camera_count=live.get("camera_count"),
+        input_source=live.get("source") if live.get("source") in {"camera", "staff", "hybrid"} else None,
         persist=False,
     )
     return {"status": live, "prediction": result}

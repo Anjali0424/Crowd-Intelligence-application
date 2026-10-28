@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import StatCard from "../../components/admin/StatCard";
@@ -47,6 +47,8 @@ mockAdminData.alerts.list.filter((alert) => !isResolvedEvent(alert))
 
 const [alertSource, setAlertSource] = useState("demo");
 const [loading, setLoading] = useState(true);
+const requestRef = useRef(0);
+const inFlightRef = useRef(false);
 const [lastUpdated, setLastUpdated] = useState(null);
 
 const [errors, setErrors] = useState({
@@ -57,13 +59,27 @@ prediction: "",
 });
 
 const fetchDashboardData = useCallback(async () => {
-const results = await Promise.allSettled([
+if (inFlightRef.current) return;
+inFlightRef.current = true;
+const requestId = requestRef.current + 1;
+requestRef.current = requestId;
+let results;
+try {
+results = await Promise.allSettled([
 apiGet("/api/crowd/live"),
 apiGet("/api/cameras/counts"),
 apiGet("/api/barricade/events"),
 apiGet("/api/darshan/prediction"),
 ]);
+} catch (err) {
+inFlightRef.current = false;
+return;
+}
 
+if (requestId !== requestRef.current) {
+  inFlightRef.current = false;
+  return;
+}
 
 const nextErrors = {
   crowd: "",
@@ -138,6 +154,7 @@ if (results[2].status === "fulfilled") {
 if (results[3].status === "fulfilled") {
   setPrediction(results[3].value);
 } else {
+  setPrediction(null);
   nextErrors.prediction =
     results[3].reason?.message || "Prediction API unavailable";
 }
@@ -145,6 +162,7 @@ if (results[3].status === "fulfilled") {
 setErrors(nextErrors);
 setLastUpdated(new Date());
 setLoading(false);
+inFlightRef.current = false;
 
 
 }, []);
@@ -226,20 +244,14 @@ criticalAlerts > 0
 : "low";
 
 // AI FORECAST CARD
-const predictedValue = prediction
-? prediction.predicted_count ??
-prediction.predictedCount ??
-prediction.predicted_people ??
-prediction.predicted_population ??
-prediction.forecast?.predicted_count ??
-prediction.prediction?.predicted_count
-: null;
+const predictedMinutes = Number(
+prediction?.total_minutes ?? prediction?.wait_minutes
+);
 
 const hasPrediction =
+!errors.prediction &&
 prediction?.available === true &&
-predictedValue !== null &&
-predictedValue !== undefined &&
-Number.isFinite(Number(predictedValue));
+Number.isFinite(predictedMinutes);
 
 const predictionLevel =
 prediction?.crowd_level ||
@@ -247,14 +259,25 @@ prediction?.level ||
 prediction?.prediction?.crowd_level ||
 "NO DATA";
 
+const predictionMethod =
+prediction?.method === "historical-ml"
+? "Historical model estimate"
+: prediction?.method === "combined"
+? "Model and queue estimate"
+: prediction?.method === "queue-baseline"
+? "Queue estimate, not a future crowd forecast"
+: "Waiting-time estimate";
+
 const predictionNote = errors.prediction
-? "Unable to connect to prediction API"
+? errors.prediction
 : prediction?.missing?.length
 ? `Missing input: ${prediction.missing.join(", ")}`
-: prediction?.reason === "missing_inputs"
+: prediction?.reason === "missing_inputs" || prediction?.available === false
 ? "Required prediction inputs are unavailable"
 : hasPrediction
-? "Forecast from the darshan prediction service"
+? predictionMethod
+: loading
+? "Loading the estimate…"
 : "A valid forecast is not currently available";
 
 return ( <div className="admin-home"> <div className="page-head"> <h1>Admin Dashboard</h1>
@@ -331,9 +354,13 @@ return ( <div className="admin-home"> <div className="page-head"> <h1>Admin Dash
       icon="🔮"
       label="AI FORECAST"
       value={
-        hasPrediction
-          ? Number(predictedValue).toLocaleString()
-          : "Unavailable"
+        errors.prediction
+          ? "Unavailable"
+          : hasPrediction
+            ? `${Math.round(predictedMinutes)} min`
+            : loading
+              ? "Loading..."
+              : "Unavailable"
       }
       status={
         errors.prediction

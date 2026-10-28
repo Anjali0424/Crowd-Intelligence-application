@@ -1,4 +1,6 @@
-﻿from fastapi import FastAPI
+﻿import os
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.crowd import router as crowd_router
@@ -19,13 +21,27 @@ load_dotenv(BACKEND_DIR / ".env")
 
 app = FastAPI(title="Temple Civic Intelligence - Backend")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+
+def _explicit_origins():
+    """Exact browser origins from CORS_ORIGINS. A wildcard is ignored."""
+    origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
-    ],
+    ]
+    for item in os.getenv("CORS_ORIGINS", "").split(","):
+        origin = item.strip().rstrip("/")
+        if origin in {"", "*"}:
+            continue
+        if origin.startswith("http://") or origin.startswith("https://"):
+            if origin not in origins:
+                origins.append(origin)
+    return origins
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_explicit_origins(),
     allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_credentials=True,
     allow_methods=["*"],

@@ -8,6 +8,8 @@ import os
 import tempfile
 import unittest
 from datetime import date, timedelta
+
+from fastapi import HTTPException
 from pathlib import Path
 
 # Point the database at a throwaway file *before* importing the app modules.
@@ -174,6 +176,61 @@ class PredictionTests(unittest.TestCase):
             second = darshan_api.upsert_record(payload2, db=db, _admin=None)
             self.assertFalse(second["created"])
             self.assertEqual(second["record"]["actual_entries"], 850)
+        finally:
+            db.close()
+
+    def test_staff_inputs_are_not_labelled_as_camera(self):
+        db = SessionLocal()
+        try:
+            result = svc.predict(
+                db,
+                queue=10,
+                people_inside=10,
+                processing_rate=60,
+                persist=False,
+            )
+            self.assertEqual(result["data_source"], "unknown")
+            self.assertFalse(result["inputs_are_live"])
+        finally:
+            db.close()
+
+    def test_selected_time_sets_the_start_not_a_future_crowd(self):
+        db = SessionLocal()
+        try:
+            body = darshan_api.PredictIn(
+                queue_population=100,
+                people_inside=50,
+                processing_rate_per_hour=200,
+                use_live=False,
+                persist=False,
+                target_time="4:00 PM",
+                target_date=date(2026, 6, 15),
+            )
+            result = darshan_api.predict(body, db)
+            self.assertTrue(result["available"])
+            self.assertEqual(result["method"], "queue-baseline")
+            self.assertEqual(result["data_source"], "staff")
+            self.assertFalse(result["inputs_are_live"])
+            self.assertAlmostEqual(result["wait_minutes"], 30.0)
+            self.assertAlmostEqual(result["total_minutes"], 45.0)
+            self.assertTrue(result["expected_completion"].startswith("2026-06-15T16:45"))
+            self.assertIn("does not predict", result["forecast_note"])
+        finally:
+            db.close()
+
+    def test_invalid_target_time_is_rejected(self):
+        db = SessionLocal()
+        try:
+            body = darshan_api.PredictIn(
+                queue_population=10,
+                processing_rate_per_hour=20,
+                use_live=False,
+                persist=False,
+                target_time="not-a-time",
+            )
+            with self.assertRaises(HTTPException) as caught:
+                darshan_api.predict(body, db)
+            self.assertEqual(caught.exception.status_code, 422)
         finally:
             db.close()
 

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import templeImage from "../../assets/images/temple.jpg";
 import { getCameraCounts } from "../../services/crowdService";
 import { translateData } from "../../i18n";
-import { sendChat, getSpeechLang } from "../../services/chatbotService";
+import { getSpeechLang } from "../../services/chatbotService";
 import {
   getDarshanCurrent,
   formatClock,
@@ -83,17 +83,10 @@ function UserHome() {
   const { t, i18n } = useTranslation();
 
   const [crowd, setCrowd] = useState(null);
-  const [question, setQuestion] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [conversationId, setConversationId] = useState(null);
-  const [micState, setMicState] = useState("idle");
-  const [micError, setMicError] = useState("");
-  const [scanNotice, setScanNotice] = useState(false);
   const [darshan, setDarshan] = useState(null);
   const [darshanLoading, setDarshanLoading] = useState(true);
   const [darshanStale, setDarshanStale] = useState(false);
+  const [darshanError, setDarshanError] = useState("");
   const [showDarshanTimePicker, setShowDarshanTimePicker] = useState(false);
   const [selectedDarshanTime, setSelectedDarshanTime] = useState(() => {
     const now = new Date();
@@ -108,21 +101,31 @@ function UserHome() {
   const [speaking, setSpeaking] = useState(false);
   const [speakError, setSpeakError] = useState(false);
 
-  const recognitionRef = useRef(null);
-  const inputRef = useRef(null);
-  const chatRef = useRef(null);
   const darshanRef = useRef(null);
+  const darshanRequest = useRef(0);
 
   const loadDarshan = useCallback(async () => {
+    const requestId = darshanRequest.current + 1;
+    darshanRequest.current = requestId;
     setDarshanLoading(true);
     try {
       const res = await getDarshanCurrent();
-      setDarshan(res?.prediction || null);
+      if (requestId !== darshanRequest.current) return;
+      const prediction =
+        res?.prediction && typeof res.prediction === "object"
+          ? res.prediction
+          : null;
+      setDarshan(prediction);
       setDarshanStale(false);
+      setDarshanError("");
     } catch (err) {
+      if (requestId !== darshanRequest.current) return;
       setDarshanStale(true);
+      setDarshanError(
+        err?.message || ""
+      );
     } finally {
-      setDarshanLoading(false);
+      if (requestId === darshanRequest.current) setDarshanLoading(false);
     }
   }, []);
 
@@ -173,19 +176,6 @@ function UserHome() {
     return () => {
       mounted = false;
       clearInterval(timer);
-    };
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch (err) {
-          /* ignore */
-        }
-        recognitionRef.current = null;
-      }
     };
   }, []);
 
@@ -294,7 +284,8 @@ function UserHome() {
         darshanType: selectedDarshanType,
       });
 
-      if (!res?.available) {
+      const totalMinutes = Number(res?.total_time_minutes);
+      if (!res?.available || !Number.isFinite(totalMinutes)) {
         setSelectedTimePredictionError(
           res?.message ||
             "A prediction is not available for that arrival. Please choose another time."
@@ -323,12 +314,6 @@ function UserHome() {
     }
   };
 
-  const scrollToChat = () => {
-    if (chatRef.current) {
-      chatRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
   const scrollToDarshan = () => {
     if (darshanRef.current) {
       darshanRef.current.scrollIntoView({
@@ -337,126 +322,6 @@ function UserHome() {
       });
     }
   };
-
-  async function submitQuestion(text) {
-    const value = (text ?? question).trim();
-    if (!value || loading) return;
-
-    setError(null);
-    const history = messages.map((m) => ({ role: m.role, content: m.content }));
-    setMessages((prev) => [...prev, { role: "user", content: value }]);
-    setQuestion("");
-    setLoading(true);
-
-    try {
-      const res = await sendChat({
-        message: value,
-        language: languageCode,
-        conversationId,
-        history,
-      });
-      if (res?.conversation_id) setConversationId(res.conversation_id);
-      setMessages((prev) => [
-        ...prev,
-        { role: "model", content: res?.reply ?? "" },
-      ]);
-    } catch (err) {
-      const detail =
-        err?.response?.data?.detail || err?.message || t("home.chatError");
-      setError(typeof detail === "string" ? detail : t("home.chatError"));
-      setMessages((prev) => [
-        ...prev,
-        { role: "model", content: t("home.chatError") },
-      ]);
-    } finally {
-      setLoading(false);
-      if (inputRef.current) inputRef.current.focus();
-    }
-  }
-
-  function handleMicClick() {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      setMicState("error");
-      setMicError(t("home.voiceUnsupported"));
-      return;
-    }
-
-    if (micState === "listening" && recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (err) {
-        /* ignore */
-      }
-      setMicState("processing");
-      return;
-    }
-
-    setMicError("");
-    setScanNotice(false);
-    const recognition = new SpeechRecognition();
-    recognition.lang = getSpeechLang(languageCode);
-    recognition.interimResults = false;
-    recognition.continuous = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      setMicState("listening");
-    };
-
-    recognition.onresult = (event) => {
-      const transcript = event?.results?.[0]?.[0]?.transcript ?? "";
-      if (!transcript.trim()) {
-        setMicState("error");
-        setMicError(t("home.voiceEmpty"));
-      } else {
-        setQuestion(transcript.trim());
-        submitQuestion(transcript.trim());
-        scrollToChat();
-      }
-    };
-
-    recognition.onerror = (event) => {
-      const code = event?.error || "";
-      if (code === "not-allowed" || code === "service-not-allowed") {
-        setMicError(t("home.voiceDenied"));
-      } else if (code === "audio-capture") {
-        setMicError(t("home.voiceNoMic"));
-      } else if (code === "no-speech") {
-        setMicError(t("home.voiceEmpty"));
-      } else {
-        setMicError(t("home.voiceError"));
-      }
-      setMicState(code === "aborted" ? "idle" : "error");
-    };
-
-    recognition.onend = () => {
-      recognitionRef.current = null;
-      setMicState((prev) => (prev === "error" ? "error" : "idle"));
-    };
-
-    recognitionRef.current = recognition;
-    try {
-      recognition.start();
-      setMicState("listening");
-    } catch (err) {
-      setMicState("error");
-      setMicError(t("home.voiceError"));
-    }
-  }
-
-  function handleScanClick() {
-    setScanNotice(true);
-  }
-
-  const suggestions = [
-    t("home.askQ1"),
-    t("home.askQ2"),
-    t("home.askQ3"),
-    t("home.askQ4"),
-  ];
 
   const services = [
     {
@@ -484,20 +349,6 @@ function UserHome() {
       to: "/user/profile",
     },
   ];
-
-  const voiceActionLabel =
-    micState === "listening"
-      ? t("home.voiceStop")
-      : micState === "processing"
-      ? t("home.voiceProcessing")
-      : t("home.voiceActionTitle");
-
-  const voiceActionHint =
-    micState === "listening"
-      ? t("home.voiceListening")
-      : micState === "processing"
-      ? t("home.voiceProcessing")
-      : t("home.voiceHintShort");
 
   return (
     <div className="dh-home">
@@ -545,33 +396,21 @@ function UserHome() {
         </button>
       </section>
 
-      <section className="dh-actions dh-tirupati-ai-section" aria-label="Tirupati AI assistant">
+      <section className="dh-actions dh-tirupati-ai-section" aria-label={t("home.askTitle")}>
         <button
           type="button"
           className="dh-tirupati-ai-button"
-          onClick={scrollToChat}
-          aria-label="Ask Tirupati AI"
+          onClick={() => navigate("/user/ai-chat")}
+          aria-label={t("home.askTitle")}
         >
           <span className="dh-tirupati-ai-robot" aria-hidden="true">
             🤖
           </span>
-          <span className="dh-tirupati-ai-title">Ask Tirupati AI</span>
-          <span className="dh-tirupati-ai-subtitle">
-            Your smart guide for a safer and smoother darshan.
-          </span>
+          <span className="dh-tirupati-ai-title">{t("home.askTitle")}</span>
+          <span className="dh-tirupati-ai-subtitle">{t("home.askSubtitle")}</span>
         </button>
       </section>
 
-      {scanNotice && (
-        <p className="dh-notice" role="status">
-          {t("home.scanUnavailable")}
-        </p>
-      )}
-      {micState === "error" && micError && (
-        <p className="dh-notice dh-notice-error" role="alert">
-          {micError}
-        </p>
-      )}
       <section className="dh-services">
         <div className="dh-section-head">
           <h2 className="dh-section-title">{t("home.servicesTitle")}</h2>
@@ -707,14 +546,22 @@ function UserHome() {
                     time: formatClock(darshan.generated_at),
                   })
                 : t("home.darshanNote")}
+              {darshanLoading ? ` · ${t("common.loading")}` : ""}
               {darshanStale ? ` · ${t("home.time.outdated")}` : ""}
+              {" "}
+              {darshan.method === "historical-ml"
+                ? t("home.time.estimateModel")
+                : darshan.method === "combined"
+                  ? t("home.time.estimateCombined")
+                  : t("home.time.estimateQueue")}
+              {darshanError ? ` ${darshanError}` : ""}
             </p>
           </>
         ) : (
           <>
             <p className="dh-darshan-state">{t("home.time.unavailable")}</p>
             <span className="dh-darshan-hint">
-              {t("home.time.unavailableHint")}
+              {darshanError || t("home.time.unavailableHint")}
             </span>
             <div className="dh-time-actions">
               <button
@@ -921,109 +768,6 @@ function UserHome() {
             </button>
           </div>
         ) : null}
-      </section>
-
-      <section
-        className="dh-ai-card"
-        aria-labelledby="dh-ai-title"
-        ref={chatRef}
-      >
-        <div className="dh-ai-head">
-          <span className="dh-ai-icon" aria-hidden="true">
-            🤖
-          </span>
-          <div>
-            <h3 id="dh-ai-title" className="dh-ai-title">
-              {t("home.askTitle")}
-            </h3>
-            <p className="dh-ai-subtitle">{t("home.askSubtitle")}</p>
-          </div>
-        </div>
-
-        <div className="dh-ai-chips">
-          {suggestions.map((s) => (
-            <button
-              key={s}
-              type="button"
-              className="dh-ai-chip"
-              onClick={() => submitQuestion(s)}
-              disabled={loading}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-
-        <div className="dh-ai-chat" aria-live="polite">
-          {messages.map((m, idx) => (
-            <div
-              key={idx}
-              className={
-                m.role === "user"
-                  ? "dh-ai-bubble dh-ai-user"
-                  : "dh-ai-bubble dh-ai-model"
-              }
-            >
-              {m.content}
-            </div>
-          ))}
-          {loading && (
-            <div className="dh-ai-bubble dh-ai-model dh-ai-typing">
-              {t("home.chatTyping")}
-            </div>
-          )}
-        </div>
-
-        {error && <p className="dh-ai-error">{error}</p>}
-
-        <form
-          className="dh-ai-input-row"
-          onSubmit={(event) => {
-            event.preventDefault();
-            submitQuestion();
-          }}
-        >
-          <input
-            ref={inputRef}
-            type="text"
-            className="dh-ai-input"
-            placeholder={t("home.askPlaceholder")}
-            aria-label={t("home.askPlaceholder")}
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                submitQuestion();
-              }
-            }}
-          />
-          <button
-            type="button"
-            className={
-              micState === "listening" ? "dh-ai-mic listening" : "dh-ai-mic"
-            }
-            aria-label={t("home.voice")}
-            title={t("home.voice")}
-            aria-pressed={micState === "listening"}
-            onClick={handleMicClick}
-          >
-            <span aria-hidden="true">
-              {micState === "listening" ? "⏹" : "🎤"}
-            </span>
-          </button>
-          <button
-            type="submit"
-            className="dh-ai-send"
-            aria-label={t("home.send")}
-            title={t("home.send")}
-            disabled={loading}
-          >
-            <span aria-hidden="true">➤</span>
-          </button>
-        </form>
-
-        <p className="dh-ai-note">{t("home.voiceHint")}</p>
       </section>
     </div>
   );

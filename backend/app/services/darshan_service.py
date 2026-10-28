@@ -438,7 +438,8 @@ def _features_for_inputs(queue, people_inside, passes_issued, actual_entries,
 
 def predict(db, *, queue=None, people_inside=None, processing_rate=None,
             entry_rate=None, passes_issued=None, actual_entries=None,
-            camera_count=None, source=None, when=None, persist=True) -> dict:
+            camera_count=None, source=None, input_source=None, when=None,
+            persist=True) -> dict:
     """Produce a darshan waiting-time estimate from the best available data."""
     when = when or datetime.now()
     observed_darshan_avg = _historical_average_darshan(db)
@@ -524,12 +525,21 @@ def predict(db, *, queue=None, people_inside=None, processing_rate=None,
         level = crowd_level_from_density(density)
 
     now = datetime.now()
-    expected_completion = now + timedelta(minutes=total_minutes or 0)
+    start = when or now
+    expected_completion = start + timedelta(minutes=total_minutes or 0)
+    if input_source in {"camera", "staff", "hybrid"}:
+        data_source = input_source
+    elif source in {"camera", "staff", "hybrid"}:
+        data_source = source
+    else:
+        data_source = "unknown"
 
     result = {
         "available": True,
         "method": method,
-        "data_source": "camera" if queue is not None and people_inside is not None else "staff",
+        "data_source": data_source,
+        "inputs_are_live": data_source in {"camera", "hybrid"},
+        "estimate_start": start.isoformat(),
         "generated_at": now.isoformat(),
         "queue_population": queue,
         "people_inside": people_inside,

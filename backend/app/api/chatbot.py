@@ -234,6 +234,9 @@ def _darshan_estimate() -> Optional[Dict[str, Any]]:
             people_inside=status.get("people_inside"),
             processing_rate=status.get("processing_rate_per_hour"),
             camera_count=status.get("camera_count"),
+            input_source=status.get("source")
+            if status.get("source") in {"camera", "staff", "hybrid"}
+            else None,
             persist=False,
         )
         return {"status": status, "prediction": prediction}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./HourlyCrowdForecast.css";
 import {
   getDarshanRecords,
@@ -106,13 +106,11 @@ function HourlyCrowdForecast() {
   });
   const [notes, setNotes] = useState("");
 
-  const [message, setSaveMessage] = useState("");
-  const [messageType, setMessageType] = useState(SUCCESS);
   const [saving, setSaving] = useState(false);
   const [recordCount, setRecordCount] = useState(0);
 
   const [selectedTime, setSelectedTime] = useState("4:00 PM");
-  const [recordedUntil, setRecordedUntil] = useState("12:00 PM");
+  const [recordedUntil, setRecordedUntil] = useState("8:00 PM");
   const [queuePopulation, setQueuePopulation] = useState("");
   const [peopleInside, setPeopleInside] = useState("");
   const [processingCapacity, setProcessingCapacity] = useState("");
@@ -126,6 +124,7 @@ function HourlyCrowdForecast() {
   const [model, setModel] = useState(null);
   const [training, setTraining] = useState(false);
   const [modelMessage, setModelMessage] = useState("");
+  const predictRequest = useRef(0);
 
   const timeSlots = useMemo(
     () =>
@@ -283,6 +282,12 @@ function HourlyCrowdForecast() {
     }
   };
 
+  const clearPrediction = () => {
+    predictRequest.current += 1;
+    setPrediction(null);
+    setPredictionMessage("");
+  };
+
   const generatePrediction = async (event) => {
     event.preventDefault();
     setPredictionMessage("");
@@ -292,11 +297,15 @@ function HourlyCrowdForecast() {
       (!Number.isFinite(Number(processingCapacity)) ||
         Number(processingCapacity) <= 0)
     ) {
+      setPrediction(null);
       setPredictionMessage("Processing capacity must be greater than zero.");
       return;
     }
 
+    const requestId = predictRequest.current + 1;
+    predictRequest.current = requestId;
     setPredicting(true);
+    setPrediction(null);
     try {
       const result = await runDarshanPrediction({
         queue_population: asInt(queuePopulation),
@@ -304,23 +313,40 @@ function HourlyCrowdForecast() {
         processing_rate_per_hour:
           processingCapacity === "" ? null : Number(processingCapacity),
         entry_rate_per_hour: entryRate === "" ? null : Number(entryRate),
+        target_time: toSlot(selectedTime),
+        target_date: recordDate,
         use_live: queuePopulation === "" && peopleInside === "",
         persist: true,
       });
+      if (requestId !== predictRequest.current) return;
+      if (!result || typeof result !== "object") {
+        setPredictionMessage(
+          "The prediction service returned an unexpected response."
+        );
+        return;
+      }
       setPrediction(result);
       if (!result.available) {
+        const missing = Array.isArray(result.missing)
+          ? result.missing.join(", ")
+          : "";
         setPredictionMessage(
-          "Not enough live data yet. Enter the queue count and processing capacity, or start camera counting."
+          missing
+            ? `Not enough data yet. Missing ${missing}. Enter those values or start camera counting.`
+            : "Not enough live data yet. Enter the queue count and processing capacity, or start camera counting."
         );
       }
     } catch (err) {
+      if (requestId !== predictRequest.current) return;
+      setPrediction(null);
+      const detail = err?.response?.data?.detail || err?.message;
       setPredictionMessage(
-        err?.response?.data?.detail ||
-          err?.message ||
-          "Prediction could not be generated."
+        typeof detail === "string" && detail
+          ? detail
+          : "Prediction could not be generated."
       );
     } finally {
-      setPredicting(false);
+      if (requestId === predictRequest.current) setPredicting(false);
     }
   };
 
@@ -579,7 +605,10 @@ function HourlyCrowdForecast() {
               <select
                 id="predict-time"
                 value={selectedTime}
-                onChange={(event) => setSelectedTime(event.target.value)}
+                onChange={(event) => {
+                  setSelectedTime(event.target.value);
+                  clearPrediction();
+                }}
               >
                 {timeSlots.map((time) => (
                   <option key={time} value={time}>
@@ -614,7 +643,10 @@ function HourlyCrowdForecast() {
                 inputMode="numeric"
                 placeholder="Enter known count"
                 value={queuePopulation}
-                onChange={(event) => setQueuePopulation(event.target.value)}
+                onChange={(event) => {
+                  setQueuePopulation(event.target.value);
+                  clearPrediction();
+                }}
               />
             </div>
 
@@ -628,7 +660,10 @@ function HourlyCrowdForecast() {
                 inputMode="numeric"
                 placeholder="Enter known count"
                 value={peopleInside}
-                onChange={(event) => setPeopleInside(event.target.value)}
+                onChange={(event) => {
+                  setPeopleInside(event.target.value);
+                  clearPrediction();
+                }}
               />
             </div>
 
@@ -644,7 +679,10 @@ function HourlyCrowdForecast() {
                 inputMode="numeric"
                 placeholder="Enter known rate"
                 value={processingCapacity}
-                onChange={(event) => setProcessingCapacity(event.target.value)}
+                onChange={(event) => {
+                  setProcessingCapacity(event.target.value);
+                  clearPrediction();
+                }}
               />
             </div>
 
@@ -660,7 +698,10 @@ function HourlyCrowdForecast() {
                 inputMode="numeric"
                 placeholder="Enter measured rate"
                 value={entryRate}
-                onChange={(event) => setEntryRate(event.target.value)}
+                onChange={(event) => {
+                  setEntryRate(event.target.value);
+                  clearPrediction();
+                }}
               />
             </div>
           </div>
@@ -707,7 +748,15 @@ function HourlyCrowdForecast() {
         {prediction && prediction.available && (
           <div className="darshan-result">
             <div className="darshan-result-head">
-              <span className="forecast-tag">Live data used</span>
+              <span className="forecast-tag">
+                {prediction.data_source === "camera"
+                  ? "Live camera counts"
+                  : prediction.data_source === "hybrid"
+                    ? "Camera and staff data"
+                    : prediction.data_source === "staff"
+                      ? "Staff records"
+                      : "Available inputs only"}
+              </span>
               {crowdLevel && (
                 <span className="darshan-level">
                   {crowdDot} {crowdLevel} crowd
@@ -754,8 +803,9 @@ function HourlyCrowdForecast() {
                 : ""}
             </p>
             <p className="forecast-description">
-              Estimates only. Target {selectedTime} is an approximate darshan
-              completion time based on the current queue, not a guarantee.
+              {prediction.forecast_note ||
+                "This is a waiting-time estimate for the queue count supplied. It is not a forecast of future attendance."}{" "}
+              Selected start: {selectedTime}.
             </p>
           </div>
         )}
@@ -807,15 +857,17 @@ function HourlyCrowdForecast() {
       <section className="modules-section forecast-section">
         <h3 className="section-title">Darshan Time by Hour</h3>
         <p className="forecast-description">
-          Recorded passes and entries across the day. The highlighted bar is the
-          target forecast time.
+          Recorded passes and entries. These bars are saved counts, not a
+          predicted crowd. The highlighted column is the selected start time.
         </p>
 
         <div className="darshan-timeline">
-          {timeSlots.map((time) => {
+          {timeSlots
+            .filter((time) => timeToMinutes(time) <= timeToMinutes(recordedUntil))
+            .map((time) => {
             const row = entries[time] || EMPTY_ENTRY;
             const passes = Number(row.passesIssued) || 0;
-            const entries = Number(row.actualEntries) || 0;
+            const actualEntries = Number(row.actualEntries) || 0;
             const isTarget = time === selectedTime;
             return (
               <div
@@ -832,8 +884,8 @@ function HourlyCrowdForecast() {
                   ></div>
                   <div
                     className="darshan-bar darshan-bar-entries"
-                    style={{ height: `${(entries / maxCount) * 100}%` }}
-                    title={`Actual entries: ${entries}`}
+                    style={{ height: `${(actualEntries / maxCount) * 100}%` }}
+                    title={`Actual entries: ${actualEntries}`}
                   ></div>
                 </div>
                 <span className="darshan-timeline-label">{time}</span>
@@ -857,7 +909,7 @@ function HourlyCrowdForecast() {
           Queue waiting time = people waiting ÷ processing rate. The darshan
           stage time = people inside ÷ processing rate, or the historical
           average darshan duration when available. The total is added to the
-          current time to give an expected completion time. Passes issued show
+          selected start time. It does not predict a future crowd size. Passes issued show
           authorized entries, not how many devotees are inside. When enough
           staff-recorded waiting times exist, a Random Forest model is trained
           and blended with the baseline.
